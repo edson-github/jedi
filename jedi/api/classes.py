@@ -49,7 +49,7 @@ def defined_names(inference_state, value):
     except HasNoContext:
         return []
     filter = next(context.get_filters())
-    names = [name for name in filter.values()]
+    names = list(filter.values())
     return [Name(inference_state, n) for n in _sort_names_by_start_pos(names)]
 
 
@@ -219,17 +219,13 @@ class BaseName:
     def line(self):
         """The line where the definition occurs (starting with 1)."""
         start_pos = self._name.start_pos
-        if start_pos is None:
-            return None
-        return start_pos[0]
+        return None if start_pos is None else start_pos[0]
 
     @property
     def column(self):
         """The column where the definition occurs (starting with 0)."""
         start_pos = self._name.start_pos
-        if start_pos is None:
-            return None
-        return start_pos[1]
+        return None if start_pos is None else start_pos[1]
 
     def get_definition_start_position(self):
         """
@@ -241,9 +237,7 @@ class BaseName:
         if self._name.tree_name is None:
             return None
         definition = self._name.tree_name.get_definition()
-        if definition is None:
-            return self._name.start_pos
-        return definition.start_pos
+        return self._name.start_pos if definition is None else definition.start_pos
 
     def get_definition_end_position(self):
         """
@@ -348,12 +342,12 @@ class BaseName:
         typ = self.type
         tree_name = self._name.tree_name
         if typ == 'param':
-            return typ + ' ' + self._name.to_string()
+            return f'{typ} {self._name.to_string()}'
         if typ in ('function', 'class', 'module', 'instance') or tree_name is None:
             if typ == 'function':
                 # For the description we want a short and a pythonic way.
                 typ = 'def'
-            return typ + ' ' + self._name.get_public_name()
+            return f'{typ} {self._name.get_public_name()}'
 
         definition = tree_name.get_definition(include_setitem=True) or tree_name
         # Remove the prefix, because that's not what we want for get_code
@@ -653,9 +647,7 @@ class Completion(BaseName):
         completing ``foo(par`` would give a ``Completion`` which ``complete``
         would be ``am=``.
         """
-        if self._is_fuzzy:
-            return None
-        return self._complete(True)
+        return None if self._is_fuzzy else self._complete(True)
 
     @property
     def name_with_symbols(self):
@@ -742,7 +734,7 @@ class Completion(BaseName):
         return self._like_name_length
 
     def __repr__(self):
-        return '<%s: %s>' % (type(self).__name__, self._name.get_public_name())
+        return f'<{type(self).__name__}: {self._name.get_public_name()}>'
 
 
 class Name(BaseName):

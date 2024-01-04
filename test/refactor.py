@@ -50,8 +50,7 @@ class RefactoringCase(object):
         return refactor_func(self._line_nr, self._index, **self._kwargs)
 
     def __repr__(self):
-        return '<%s: %s:%s>' % (self.__class__.__name__,
-                                self.name, self._line_nr - 1)
+        return f'<{self.__class__.__name__}: {self.name}:{self._line_nr - 1}>'
 
 
 def _collect_file_tests(code, path, lines_to_execute):
@@ -67,15 +66,10 @@ def _collect_file_tests(code, path, lines_to_execute):
         p = re.match(r'((?:(?!#\?).)*)#\? (\d*)( error| text|) ?([^\n]*)', first, re.DOTALL)
         if p is None:
             raise Exception("Please add a test start.")
-            continue
         until = p.group(1)
         index = int(p.group(2))
         type_ = p.group(3).strip() or 'diff'
-        if p.group(4):
-            kwargs = eval(p.group(4))
-        else:
-            kwargs = {}
-
+        kwargs = eval(p.group(4)) if p.group(4) else {}
         line_nr = until.count('\n') + 2
         if lines_to_execute and line_nr - 1 not in lines_to_execute:
             continue
@@ -95,5 +89,4 @@ def collect_dir_tests(base_dir, test_files):
             path = os.path.join(base_dir, f_name)
             with open(path, newline='') as f:
                 code = f.read()
-            for case in _collect_file_tests(code, path, lines_to_execute):
-                yield case
+            yield from _collect_file_tests(code, path, lines_to_execute)

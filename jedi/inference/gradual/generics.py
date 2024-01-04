@@ -17,8 +17,7 @@ def _resolve_forward_references(context, value_set):
             from jedi.inference.gradual.annotation import _get_forward_reference_node
             node = _get_forward_reference_node(context, value.get_safe_value())
             if node is not None:
-                for c in context.infer_node(node):
-                    yield c
+                yield from context.infer_node(node)
         else:
             yield value
 
@@ -78,7 +77,7 @@ class LazyGenericManager(_AbstractGenericManager):
         return False
 
     def __repr__(self):
-        return '<LazyG>[%s]' % (', '.join(repr(x) for x in self.to_tuple()))
+        return f"<LazyG>[{', '.join(repr(x) for x in self.to_tuple())}]"
 
 
 class TupleGenericManager(_AbstractGenericManager):
@@ -98,4 +97,4 @@ class TupleGenericManager(_AbstractGenericManager):
         return False
 
     def __repr__(self):
-        return '<TupG>[%s]' % (', '.join(repr(x) for x in self.to_tuple()))
+        return f"<TupG>[{', '.join(repr(x) for x in self.to_tuple())}]"

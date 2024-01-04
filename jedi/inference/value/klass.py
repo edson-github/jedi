@@ -114,7 +114,7 @@ class ClassFilter(ParserTreeFilter):
     def _equals_origin_scope(self):
         node = self._origin_scope
         while node is not None:
-            if node == self._parser_scope or node == self.parent_context:
+            if node in [self._parser_scope, self.parent_context]:
                 return True
             node = get_cached_parent_scope(self._parso_cache_node, node)
         return False
@@ -190,8 +190,7 @@ class ClassMixin:
     def get_filters(self, origin_scope=None, is_instance=False,
                     include_metaclasses=True, include_type_when_class=True):
         if include_metaclasses:
-            metaclasses = self.get_metaclasses()
-            if metaclasses:
+            if metaclasses := self.get_metaclasses():
                 yield from self.get_metaclass_filters(metaclasses, is_instance)
 
         for cls in self.py__mro__():
@@ -222,13 +221,8 @@ class ClassMixin:
                     yield x
 
     def get_signatures(self):
-        # Since calling staticmethod without a function is illegal, the Jedi
-        # plugin doesn't return anything. Therefore call directly and get what
-        # we want: An instance of staticmethod.
-        metaclasses = self.get_metaclasses()
-        if metaclasses:
-            sigs = self.get_metaclass_signatures(metaclasses)
-            if sigs:
+        if metaclasses := self.get_metaclasses():
+            if sigs := self.get_metaclass_signatures(metaclasses):
                 return sigs
         args = ValuesArguments([])
         init_funcs = self.py__call__(args).py__getattribute__('__init__')
@@ -238,9 +232,7 @@ class ClassMixin:
         return ClassContext(self)
 
     def get_type_hint(self, add_class_info=True):
-        if add_class_info:
-            return 'Type[%s]' % self.py__name__()
-        return self.py__name__()
+        return f'Type[{self.py__name__()}]' if add_class_info else self.py__name__()
 
     @inference_state_method_cache(default=False)
     def is_typeddict(self):
@@ -341,8 +333,7 @@ class ClassValue(ClassMixin, FunctionAndClassBase, metaclass=CachedMetaClass):
         return found
 
     def _get_bases_arguments(self):
-        arglist = self.tree_node.get_super_arglist()
-        if arglist:
+        if arglist := self.tree_node.get_super_arglist():
             from jedi.inference import arguments
             return arguments.TreeArguments(self.inference_state, self.parent_context, arglist)
         return None
@@ -351,12 +342,11 @@ class ClassValue(ClassMixin, FunctionAndClassBase, metaclass=CachedMetaClass):
     def py__bases__(self):
         args = self._get_bases_arguments()
         if args is not None:
-            lst = [value for key, value in args.unpack() if key is None]
-            if lst:
+            if lst := [value for key, value in args.unpack() if key is None]:
                 return lst
 
         if self.py__name__() == 'object' \
-                and self.parent_context.is_builtins_module():
+                    and self.parent_context.is_builtins_module():
             return []
         return [LazyKnownValues(
             self.inference_state.builtins_module.py__getattribute__('object')
@@ -373,15 +363,13 @@ class ClassValue(ClassMixin, FunctionAndClassBase, metaclass=CachedMetaClass):
         if args is not None:
             m = [value for key, value in args.unpack() if key == 'metaclass']
             metaclasses = ValueSet.from_sets(lazy_value.infer() for lazy_value in m)
-            metaclasses = ValueSet(m for m in metaclasses if m.is_class())
-            if metaclasses:
+            if metaclasses := ValueSet(m for m in metaclasses if m.is_class()):
                 return metaclasses
 
         for lazy_base in self.py__bases__():
             for value in lazy_base.infer():
                 if value.is_class():
-                    values = value.get_metaclasses()
-                    if values:
+                    if values := value.get_metaclasses():
                         return values
         return NO_VALUES
 

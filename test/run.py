@@ -162,9 +162,7 @@ class BaseTestCase(object):
         min_version, operator_ = self._skip_version_info
         operation = getattr(operator, comp_map[operator_])
         if not operation(environment.version_info[:2], min_version):
-            return "Python version %s %s.%s" % (
-                operator_, min_version[0], min_version[1]
-            )
+            return f"Python version {operator_} {min_version[0]}.{min_version[1]}"
 
 
 class IntegrationTestCase(BaseTestCase):
@@ -246,19 +244,18 @@ class IntegrationTestCase(BaseTestCase):
                 node.parent = user_context.tree_node
                 results = convert_values(user_context.infer_node(node))
                 if not results:
-                    raise Exception('Could not resolve %s on line %s'
-                                    % (match.string, self.line_nr - 1))
+                    raise Exception(f'Could not resolve {match.string} on line {self.line_nr - 1}')
 
-                should_be |= set(Name(inference_state, r.name) for r in results)
+                should_be |= {Name(inference_state, r.name) for r in results}
             debug.dbg('Finished getting types', color='YELLOW')
 
             # Because the objects have different ids, `repr`, then compare.
-            should = set(comparison(r) for r in should_be)
+            should = {comparison(r) for r in should_be}
             return should
 
         should = definition(self.correct, self.start, script.path)
         result = script.infer(self.line_nr, self.column)
-        is_str = set(comparison(r) for r in result)
+        is_str = {comparison(r) for r in result}
         for r in result:
             # Test if this access raises an error
             assert isinstance(r.type, str)
@@ -280,10 +277,7 @@ class IntegrationTestCase(BaseTestCase):
             for r in result
         )
         wanted = []
-        if not self.correct:
-            positions = []
-        else:
-            positions = literal_eval(self.correct)
+        positions = [] if not self.correct else literal_eval(self.correct)
         for pos_tup in positions:
             if type(pos_tup[0]) == str:
                 # this means that there is a module specified
@@ -292,7 +286,7 @@ class IntegrationTestCase(BaseTestCase):
                 wanted.append(pos_tup)
             else:
                 line = pos_tup[0]
-                if pos_tup[0] is not None:
+                if line is not None:
                     line += self.line_nr
                 wanted.append((self.module_name, line, pos_tup[1]))
 
@@ -307,9 +301,7 @@ class StaticAnalysisCase(BaseTestCase):
     def __init__(self, path):
         self._path = path
         self.name = os.path.basename(path)
-        with open(path) as f:
-            self._source = f.read()
-
+        self._source = Path(path).read_text()
         skip_version_info = None
         for line in self._source.splitlines():
             skip_version_info = skip_python_version(line) or skip_version_info
@@ -339,13 +331,11 @@ class StaticAnalysisCase(BaseTestCase):
         compare_cb(self, analysis, self.collect_comparison())
 
     def __repr__(self):
-        return "<%s: %s>" % (self.__class__.__name__, os.path.basename(self._path))
+        return f"<{self.__class__.__name__}: {os.path.basename(self._path)}>"
 
 
 def skip_python_version(line):
-    # check for python minimal version number
-    match = re.match(r" *# *python *([<>]=?|==) *(\d+(?:\.\d+)?)$", line)
-    if match:
+    if match := re.match(r" *# *python *([<>]=?|==) *(\d+(?:\.\d+)?)$", line):
         minimal_python_version = tuple(map(int, match.group(2).split(".")))
         return minimal_python_version, match.group(1)
     return None
@@ -416,7 +406,7 @@ def collect_dir_tests(base_dir, test_files, check_thirdparty=False):
                     # It looks like: completion/thirdparty/pylab_.py
                     __import__(lib)
                 except ImportError:
-                    skip = 'Thirdparty-Library %s not found.' % lib
+                    skip = f'Thirdparty-Library {lib} not found.'
 
             path = os.path.join(base_dir, f_name)
 
@@ -487,19 +477,15 @@ if __name__ == '__main__':
         cases += collect_dir_tests(completion_test_dir, test_files, True)
 
     def file_change(current, tests, fails):
-        if current is None:
-            current = ''
-        else:
-            current = os.path.basename(current)
+        current = '' if current is None else os.path.basename(current)
         print('{:25} {} tests and {} fails.'.format(current, tests, fails))
 
     def report(case, actual, desired):
         if actual == desired:
             return 0
-        else:
-            print("\ttest fail @%d, actual = %s, desired = %s"
-                  % (case.line_nr - 1, actual, desired))
-            return 1
+        print("\ttest fail @%d, actual = %s, desired = %s"
+              % (case.line_nr - 1, actual, desired))
+        return 1
 
     if arguments['--env']:
         environment = get_system_environment(arguments['--env'])

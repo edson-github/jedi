@@ -61,13 +61,12 @@ class CompiledValue(Value):
         except AttributeError:
             return super().py__call__(arguments)
         else:
-            if self.access_handle.is_class():
-                from jedi.inference.value import CompiledInstance
-                return ValueSet([
-                    CompiledInstance(self.inference_state, self.parent_context, self, arguments)
-                ])
-            else:
+            if not self.access_handle.is_class():
                 return ValueSet(self._execute_function(arguments))
+            from jedi.inference.value import CompiledInstance
+            return ValueSet([
+                CompiledInstance(self.inference_state, self.parent_context, self, arguments)
+            ])
 
     @CheckAttribute()
     def py__class__(self):
@@ -120,10 +119,7 @@ class CompiledValue(Value):
             signature_params = self.access_handle.get_signature_params()
         except ValueError:  # Has no signature
             params_str, ret = self._parse_function_doc()
-            if not params_str:
-                tokens = []
-            else:
-                tokens = params_str.split(',')
+            tokens = [] if not params_str else params_str.split(',')
             if self.access_handle.ismethoddescriptor():
                 tokens.insert(0, 'self')
             for p in tokens:
@@ -138,15 +134,12 @@ class CompiledValue(Value):
         return [BuiltinSignature(self, return_string)]
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self.access_handle.get_repr())
+        return f'<{self.__class__.__name__}: {self.access_handle.get_repr()}>'
 
     @memoize_method
     def _parse_function_doc(self):
         doc = self.py__doc__()
-        if doc is None:
-            return '', ''
-
-        return _parse_function_doc(doc)
+        return ('', '') if doc is None else _parse_function_doc(doc)
 
     @property
     def api_type(self):
@@ -304,9 +297,7 @@ class CompiledModule(CompiledValue):
     def string_names(self):
         # For modules
         name = self.py__name__()
-        if name is None:
-            return ()
-        return tuple(name.split('.'))
+        return () if name is None else tuple(name.split('.'))
 
     def py__file__(self) -> Optional[Path]:
         return self.access_handle.py__file__()  # type: ignore[no-any-return]
@@ -341,7 +332,7 @@ class CompiledName(AbstractNameDefinition):
             name = self.parent_context.name  # __name__ is not defined all the time
         except AttributeError:
             name = None
-        return '<%s: (%s).%s>' % (self.__class__.__name__, name, self.string_name)
+        return f'<{self.__class__.__name__}: ({name}).{self.string_name}>'
 
     @property
     def api_type(self):
@@ -372,9 +363,9 @@ class SignatureParamName(ParamNameInterface, AbstractNameDefinition):
     def to_string(self):
         s = self._kind_string() + self.string_name
         if self._signature_param.has_annotation:
-            s += ': ' + self._signature_param.annotation_string
+            s += f': {self._signature_param.annotation_string}'
         if self._signature_param.has_default:
-            s += '=' + self._signature_param.default_string
+            s += f'={self._signature_param.default_string}'
         return s
 
     def get_kind(self):
@@ -404,7 +395,7 @@ class UnresolvableParamName(ParamNameInterface, AbstractNameDefinition):
     def to_string(self):
         string = self.string_name
         if self._default:
-            string += '=' + self._default
+            string += f'={self._default}'
         return string
 
     def infer(self):
@@ -456,18 +447,16 @@ class CompiledValueFilter(AbstractFilter):
             name,
         )
         if property_return_annotation is not None:
-            values = create_from_access_path(
-                self._inference_state,
-                property_return_annotation
-            ).execute_annotation()
-            if values:
+            if values := create_from_access_path(
+                self._inference_state, property_return_annotation
+            ).execute_annotation():
                 return [CompiledValueName(v, name) for v in values]
 
         if check_has_attribute and not has_attribute:
             return []
 
         if (is_descriptor or not has_attribute) \
-                and not self._inference_state.allow_unsafe_executions:
+                    and not self._inference_state.allow_unsafe_executions:
             return [self._get_cached_name(name, is_empty=True)]
 
         if self.is_instance and not in_dir_callback(name):
@@ -512,7 +501,7 @@ class CompiledValueFilter(AbstractFilter):
         )
 
     def __repr__(self):
-        return "<%s: %s>" % (self.__class__.__name__, self.compiled_value)
+        return f"<{self.__class__.__name__}: {self.compiled_value}>"
 
 
 docstr_defaults = {
@@ -619,8 +608,5 @@ def create_from_access_path(inference_state, access_path):
 @inference_state_function_cache()
 def create_cached_compiled_value(inference_state, access_handle, parent_context):
     assert not isinstance(parent_context, CompiledValue)
-    if parent_context is None:
-        cls = CompiledModule
-    else:
-        cls = CompiledValue
+    cls = CompiledModule if parent_context is None else CompiledValue
     return cls(inference_state, access_handle, parent_context)

@@ -2,9 +2,8 @@ def find_class():
     """ This scope is special, because its in front of TestClass """
     #? ['ret']
     TestClass.ret
-    if 1:
-        #? ['ret']
-        TestClass.ret
+    #? ['ret']
+    TestClass.ret
 
 class FindClass():
     #? []
@@ -16,9 +15,8 @@ class FindClass():
     def find_class(self):
         #? ['ret']
         TestClass.ret
-        if 1:
-            #? ['ret']
-            TestClass.ret
+        #? ['ret']
+        TestClass.ret
 
 #? []
 FindClass().find_class.self
@@ -33,11 +31,11 @@ class TestClass(object):
     var_class = TestClass(1)
     self.pseudo_var = 3
 
-    def __init__(self2, first_param, second_param, third=1.0):
-        self2.var_inst = first_param
-        self2.second = second_param
-        self2.first = first_param
-        self2.first.var_on_argument = 5
+    def __init__(self, first_param, second_param, third=1.0):
+        self.var_inst = first_param
+        self.second = second_param
+        self.first = first_param
+        self.first.var_on_argument = 5
         a = 3
 
     def var_func(self):

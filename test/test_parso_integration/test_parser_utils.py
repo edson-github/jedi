@@ -13,9 +13,7 @@ class TestCallAndName:
     def get_call(self, source):
         # Get the simple_stmt and then the first one.
         node = parse(source).children[0]
-        if node.type == 'simple_stmt':
-            return node.children[0]
-        return node
+        return node.children[0] if node.type == 'simple_stmt' else node
 
     def test_name_and_call_positions(self):
         name = self.get_call('name\nsomething_else')

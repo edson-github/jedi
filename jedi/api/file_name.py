@@ -38,8 +38,7 @@ def complete_file_name(inference_state, module_context, start_leaf, quote, strin
     base_path = os.path.join(inference_state.project.path, string)
     try:
         listed = sorted(os.scandir(base_path), key=lambda e: e.name)
-        # OSError: [Errno 36] File name too long: '...'
-    except (FileNotFoundError, OSError):
+    except OSError:
         return
     quote_ending = get_quote_ending(quote, code_lines, position)
     for entry in listed:

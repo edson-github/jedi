@@ -11,7 +11,8 @@ a.append
 
 a = list
 
-b = 1; b = ""
+b = 1
+b = ""
 #? str()
 b
 
@@ -20,9 +21,7 @@ b
 temp
 
 a = 1
-temp = b;
-b = a
-a = temp
+b, a = a, b
 #? int()
 b
 #? int()
@@ -31,8 +30,7 @@ b
 a
 
 a = tuple
-if 1:
-    a = list
+a = list
 
 #? ['append']
 a.append

@@ -55,7 +55,7 @@ def x():
     yield 1
 generator = type(x())
 #? generator
-type(x for x in [])
+type(iter([]))
 #? type(x)
 type(lambda: x)
 
@@ -90,7 +90,7 @@ os._T
 
 
 with open('foo') as f:
-    for line in f.readlines():
+    for line in f:
         #? str() bytes()
         line
 # -----------------

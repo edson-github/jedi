@@ -2,6 +2,7 @@
 Environments are a way to activate different Python versions or Virtualenvs for
 static analysis. The Python binary in that environment is going to be executed.
 """
+
 import os
 import sys
 import hashlib
@@ -20,7 +21,7 @@ _VersionInfo = namedtuple('VersionInfo', 'major minor micro')  # type: ignore[na
 _SUPPORTED_PYTHONS = ['3.12', '3.11', '3.10', '3.9', '3.8', '3.7', '3.6']
 _SAFE_PATHS = ['/usr/bin', '/usr/local/bin']
 _CONDA_VAR = 'CONDA_PREFIX'
-_CURRENT_VERSION = '%s.%s' % (sys.version_info.major, sys.version_info.minor)
+_CURRENT_VERSION = f'{sys.version_info.major}.{sys.version_info.minor}'
 
 
 class InvalidPythonEnvironment(Exception):
@@ -33,7 +34,7 @@ class InvalidPythonEnvironment(Exception):
 class _BaseEnvironment:
     @memoize_method
     def get_grammar(self):
-        version_string = '%s.%s' % (self.version_info.major, self.version_info.minor)
+        version_string = f'{self.version_info.major}.{self.version_info.minor}'
         return parso.load_grammar(version=version_string)
 
     @property
@@ -100,7 +101,7 @@ class Environment(_BaseEnvironment):
 
     def __repr__(self):
         version = '.'.join(str(i) for i in self.version_info)
-        return '<%s: %s in %s>' % (self.__class__.__name__, version, self.path)
+        return f'<{self.__class__.__name__}: {version} in {self.path}>'
 
     def get_inference_state_subprocess(self, inference_state):
         return InferenceStateSubprocess(inference_state, self._get_subprocess())
@@ -147,8 +148,7 @@ def _get_virtual_env_from_var(env_var='VIRTUAL_ENV'):
     It uses `safe=False` with ``create_environment``, because the environment
     variable is considered to be safe / controlled by the user solely.
     """
-    var = os.environ.get(env_var)
-    if var:
+    if var := os.environ.get(env_var):
         # Under macOS in some cases - notably when using Pipenv - the
         # sys.prefix of the virtualenv is /path/to/env/bin/.. instead of
         # /path/to/env so we need to fully resolve the paths in order to
@@ -185,10 +185,7 @@ def get_default_environment():
         return virtual_env
 
     conda_env = _get_virtual_env_from_var(_CONDA_VAR)
-    if conda_env is not None:
-        return conda_env
-
-    return _try_get_same_env()
+    return conda_env if conda_env is not None else _try_get_same_env()
 
 
 def _try_get_same_env():
@@ -215,8 +212,8 @@ def _try_get_same_env():
         else:
             # For unix it looks like Python is always in a bin folder.
             checks = (
-                'bin/python%s.%s' % (sys.version_info[0], sys.version[1]),
-                'bin/python%s' % (sys.version_info[0]),
+                f'bin/python{sys.version_info[0]}.{sys.version[1]}',
+                f'bin/python{sys.version_info[0]}',
                 'bin/python',
             )
         for check in checks:
@@ -338,19 +335,15 @@ def get_system_environment(version, *, env_vars=None):
     :raises: :exc:`.InvalidPythonEnvironment`
     :returns: :class:`.Environment`
     """
-    exe = which('python' + version)
-    if exe:
-        if exe == sys.executable:
-            return SameEnvironment()
-        return Environment(exe)
-
+    if exe := which(f'python{version}'):
+        return SameEnvironment() if exe == sys.executable else Environment(exe)
     if os.name == 'nt':
         for exe in _get_executables_from_windows_registry(version):
             try:
                 return Environment(exe, env_vars=env_vars)
             except InvalidPythonEnvironment:
                 pass
-    raise InvalidPythonEnvironment("Cannot find executable python%s." % version)
+    raise InvalidPythonEnvironment(f"Cannot find executable python{version}.")
 
 
 def create_environment(path, *, safe=True, env_vars=None):
@@ -377,7 +370,7 @@ def _get_executable_path(path, safe=True):
     else:
         python = os.path.join(path, 'bin', 'python')
     if not os.path.exists(python):
-        raise InvalidPythonEnvironment("%s seems to be missing." % python)
+        raise InvalidPythonEnvironment(f"{python} seems to be missing.")
 
     _assert_safe(python, safe)
     return python

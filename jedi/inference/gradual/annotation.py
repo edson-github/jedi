@@ -69,7 +69,7 @@ def _get_forward_reference_node(context, string):
             error_recovery=False
         )
     except ParserSyntaxError:
-        debug.warning('Annotation not parsed: %s' % string)
+        debug.warning(f'Annotation not parsed: {string}')
         return None
     else:
         module = context.tree_node.get_root_node()
@@ -90,7 +90,7 @@ def _split_comment_param_declaration(decl_text):
     try:
         node = parse(decl_text, error_recovery=False).children[0]
     except ParserSyntaxError:
-        debug.warning('Comment annotation is not valid Python: %s' % decl_text)
+        debug.warning(f'Comment annotation is not valid Python: {decl_text}')
         return []
 
     if node.type in ['name', 'atom_expr', 'power']:
@@ -102,10 +102,11 @@ def _split_comment_param_declaration(decl_text):
     except AttributeError:
         return []
     else:
-        for child in children:
-            if child.type in ['name', 'atom_expr', 'power']:
-                params.append(child.get_code().strip())
-
+        params.extend(
+            child.get_code().strip()
+            for child in children
+            if child.type in ['name', 'atom_expr', 'power']
+        )
     return params
 
 
@@ -190,8 +191,7 @@ def py__annotations__(funcdef):
         if param_annotation is not None:
             dct[function_param.name.value] = param_annotation
 
-    return_annotation = funcdef.annotation
-    if return_annotation:
+    if return_annotation := funcdef.annotation:
         dct['return'] = return_annotation
     return dct
 
@@ -242,14 +242,16 @@ def infer_return_types(function, arguments):
         if comment is None:
             return NO_VALUES
 
-        match = re.match(r"^#\s*type:\s*\([^#]*\)\s*->\s*([^#]*)", comment)
-        if not match:
-            return NO_VALUES
+        if match := re.match(
+            r"^#\s*type:\s*\([^#]*\)\s*->\s*([^#]*)", comment
+        ):
+            return _infer_annotation_string(
+                context,
+                match.group(1).strip()
+            ).execute_annotation()
 
-        return _infer_annotation_string(
-            context,
-            match.group(1).strip()
-        ).execute_annotation()
+        else:
+            return NO_VALUES
 
     unknown_type_vars = find_unknown_type_vars(context, annotation)
     annotation_values = infer_annotation(context, annotation)
@@ -285,8 +287,9 @@ def infer_type_vars_for_execution(function, arguments, annotation_dict):
         except KeyError:
             continue
 
-        annotation_variables = find_unknown_type_vars(context, annotation_node)
-        if annotation_variables:
+        if annotation_variables := find_unknown_type_vars(
+            context, annotation_node
+        ):
             # Infer unknown type var
             annotation_value_set = context.infer_node(annotation_node)
             kind = executed_param_name.get_kind()
@@ -469,6 +472,5 @@ def _unpack_subscriptlist(subscriptlist):
         for subscript in subscriptlist.children[::2]:
             if subscript.type != 'subscript':
                 yield subscript
-    else:
-        if subscriptlist.type != 'subscript':
-            yield subscriptlist
+    elif subscriptlist.type != 'subscript':
+        yield subscriptlist

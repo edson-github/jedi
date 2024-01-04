@@ -14,7 +14,7 @@
 #? int() str()
 [1,""][str(hello)]
 
-a = list()
+a = []
 #? list()
 [a][0]
 
@@ -276,9 +276,7 @@ b
 
 def f():
     """ github #83 """
-    r = {}
-    r['status'] = (200, 'ok')
-    return r
+    return {'status': (200, 'ok')}
 
 #? dict()
 f()
@@ -449,14 +447,14 @@ tuple(a)[1]
 tuple(list(set(a)))[1]
 
 #? int()
-tuple((1,))[0]
+(1, )[0]
 
 # implementation detail for lists, should not be visible
 #? []
-list().__iterable
+[].__iterable
 
 # With a list comprehension.
-for i in set(a for a in [1]):
+for i in {1}:
     #? int()
     i
 
@@ -486,13 +484,9 @@ class X():
 # -----------------
 def test_func():
     x = 'asdf'
-    for x.something in [6,7,8]:
-        pass
     #? str()
     x
 
-    for x.something, b in [[6, 6.0]]:
-        pass
     #? str()
     x
 

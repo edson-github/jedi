@@ -44,7 +44,7 @@ class FooListComp():
         self.recursive = [1]
 
     def annoying(self):
-        self.recursive = [x for x in self.recursive]
+        self.recursive = list(self.recursive)
 
 
 #? int()
@@ -88,9 +88,7 @@ class A:
 class B:
     def a(self, b):
         for i in b:
-            for i in self.a(i):
-                #?
-                yield i
+            yield from self.a(i)
 
 
 foo = int

@@ -6,7 +6,7 @@ def import_module(callback):
     def wrapper(inference_state, import_names, module_context, *args, **kwargs):
         if len(import_names) == 3 and import_names[:2] == ('flask', 'ext'):
             # New style.
-            ipath = ('flask_' + import_names[2]),
+            ipath = (f'flask_{import_names[2]}', )
             value_set = callback(inference_state, ipath, None, *args, **kwargs)
             if value_set:
                 return value_set
@@ -18,4 +18,5 @@ def import_module(callback):
                 *args, **kwargs
             )
         return callback(inference_state, import_names, module_context, *args, **kwargs)
+
     return wrapper

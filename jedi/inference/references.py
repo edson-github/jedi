@@ -43,10 +43,7 @@ def _resolve_names(definition_names, avoid_names=()):
 
 
 def _dictionarize(names):
-    return dict(
-        (n if n.tree_name is None else n.tree_name, n)
-        for n in names
-    )
+    return {n if n.tree_name is None else n.tree_name: n for n in names}
 
 
 def _find_defining_names(module_context, tree_name):
@@ -127,7 +124,7 @@ def find_references(module_context, tree_name, only_in_module=False):
 
     module_contexts = [module_context]
     if not only_in_module:
-        for m in set(d.get_root_context() for d in found_names):
+        for m in {d.get_root_context() for d in found_names}:
             if m != module_context and m.tree_node is not None \
                     and inf.project.path in m.py__file__().parents:
                 module_contexts.append(m)
@@ -175,9 +172,7 @@ def _check_fs(inference_state, file_io, regex):
         return None
     new_file_io = KnownContentFileIO(file_io.path, code)
     m = load_module_from_path(inference_state, new_file_io)
-    if m.is_compiled():
-        return None
-    return m.as_context()
+    return None if m.is_compiled() else m.as_context()
 
 
 def gitignored_paths(folder_io, file_io):

@@ -287,13 +287,12 @@ class MethodDecoratorDoesntExist(Base):
 # others
 # -----------------
 def memoize(function):
-        def wrapper(*args):
-            if random.choice([0, 1]):
-                pass
-            else:
-                rv = function(*args)
-                return rv
-        return wrapper
+    def wrapper(*args):
+        if not random.choice([0, 1]):
+            rv = function(*args)
+            return rv
+
+    return wrapper
 
 @memoize
 def follow_statement(stmt):

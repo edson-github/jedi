@@ -101,7 +101,7 @@ def environment(request):
         return InterpreterEnvironment()
 
     if '.' not in version:
-        version = version[0] + '.' + version[1:]
+        version = f'{version[0]}.{version[1:]}'
     return get_system_environment(version)
 
 

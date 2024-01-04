@@ -46,9 +46,11 @@ def _shadowed_dict(klass):
         except KeyError:
             pass
         else:
-            if not (type(class_dict) is types.GetSetDescriptorType
-                    and class_dict.__name__ == "__dict__"
-                    and class_dict.__objclass__ is entry):
+            if (
+                type(class_dict) is not types.GetSetDescriptorType
+                or class_dict.__name__ != "__dict__"
+                or class_dict.__objclass__ is not entry
+            ):
                 return class_dict
     return _sentinel
 
@@ -59,7 +61,7 @@ def _static_getmro(klass):
         # There are unfortunately no tests for this, I was not able to
         # reproduce this in pure Python. However should still solve the issue
         # raised in GH #1517.
-        debug.warning('mro of %s returned %s, should be a tuple' % (klass, mro))
+        debug.warning(f'mro of {klass} returned {mro}, should be a tuple')
         return ()
     return mro
 

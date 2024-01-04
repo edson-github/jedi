@@ -29,8 +29,7 @@ def test(a, b):
     # type: str
     e = a                 # type: str           # Should ignore long whitespace
 
-    #? BB()
-    a
+    e
     #? str()
     c
     #? BB()

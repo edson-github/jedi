@@ -78,7 +78,7 @@ class SourceFinder(object):
 class TestCase(object):
     def __init__(self, operation, path, line, column, traceback=None):
         if operation not in self.operations:
-            raise ValueError("%s is not a valid operation" % operation)
+            raise ValueError(f"{operation} is not a valid operation")
 
         # Set other attributes
         self.operation = operation
@@ -148,7 +148,7 @@ class TestCase(object):
 
     def show_location(self, lineno, column, show=3):
         # Three lines ought to be enough
-        lower = lineno - show if lineno - show > 0 else 0
+        lower = max(lineno - show, 0)
         prefix = '  |'
         for i, line in enumerate(self.script._code.split('\n')[lower:lineno]):
             print(prefix, lower + i + 1, line)
@@ -206,7 +206,7 @@ def main(arguments):
         for _ in range(int(arguments['--maxtries'])):
             t = TestCase.generate(arguments['<path>'] or '.')
             if arguments['-s']:
-                print('%s %s %s %s ' % (t.operation, t.path, t.line, t.column))
+                print(f'{t.operation} {t.path} {t.line} {t.column} ')
                 sys.stdout.flush()
             else:
                 print('.', end='')

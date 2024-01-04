@@ -42,7 +42,7 @@ def test_simple_annotations(Script, environment):
     r'1\n'
 ])
 def test_illegal_forward_references(Script, environment, reference):
-    source = 'def foo(bar: "%s"): bar' % reference
+    source = f'def foo(bar: "{reference}"): bar'
 
     assert not Script(source).infer()
 

@@ -338,7 +338,7 @@ def test_math_fuzzy_completion(Script, environment):
 
 def test_file_fuzzy_completion(Script):
     path = os.path.join(test_dir, 'completion')
-    script = Script('"{}/ep08_i'.format(path))
+    script = Script(f'"{path}/ep08_i')
     expected = [
         'pep0484_basic.py"',
         'pep0484_generic_mismatches.py"',

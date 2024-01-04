@@ -79,8 +79,7 @@ class Generator(GeneratorBase):
         self._func_execution_context = func_execution_context
 
     def py__iter__(self, contextualized_node=None):
-        iterators = self._func_execution_context.infer_annotations()
-        if iterators:
+        if iterators := self._func_execution_context.infer_annotations():
             return iterators.iterate(contextualized_node)
         return self._func_execution_context.get_yield_lazy_values()
 
@@ -88,7 +87,7 @@ class Generator(GeneratorBase):
         return self._func_execution_context.get_return_values()
 
     def __repr__(self):
-        return "<%s of %s>" % (type(self).__name__, self._func_execution_context)
+        return f"<{type(self).__name__} of {self._func_execution_context}>"
 
 
 def comprehension_from_atom(inference_state, value, atom):
@@ -144,7 +143,7 @@ class ComprehensionMixin:
         cn = ContextualizedNode(parent_context, input_node)
         iterated = input_types.iterate(cn, is_async=is_async)
         exprlist = comp_for.children[1]
-        for i, lazy_value in enumerate(iterated):
+        for lazy_value in iterated:
             types = lazy_value.infer()
             dct = unpack_tuple_to_dict(parent_context, types, exprlist)
             context = self._get_comp_for_context(
@@ -172,7 +171,7 @@ class ComprehensionMixin:
             yield LazyKnownValues(set_)
 
     def __repr__(self):
-        return "<%s of %s>" % (type(self).__name__, self._sync_comp_for_node)
+        return f"<{type(self).__name__} of {self._sync_comp_for_node}>"
 
 
 class _DictMixin:
@@ -339,12 +338,11 @@ class SequenceLiteralValue(Sequence):
         """Here the index is an int/str. Raises IndexError/KeyError."""
         if isinstance(index, slice):
             return ValueSet([self])
-        else:
-            with reraise_getitem_errors(TypeError, KeyError, IndexError):
-                node = self.get_tree_entries()[index]
-            if node == ':' or node.type == 'subscript':
-                return NO_VALUES
-            return self._defining_context.infer_node(node)
+        with reraise_getitem_errors(TypeError, KeyError, IndexError):
+            node = self.get_tree_entries()[index]
+        if node == ':' or node.type == 'subscript':
+            return NO_VALUES
+        return self._defining_context.infer_node(node)
 
     def py__iter__(self, contextualized_node=None):
         """
@@ -374,11 +372,7 @@ class SequenceLiteralValue(Sequence):
         if array_node in (']', '}', ')'):
             return []  # Direct closing bracket, doesn't contain items.
 
-        if array_node.type == 'testlist_comp':
-            # filter out (for now) pep 448 single-star unpacking
-            return [value for value in array_node.children[::2]
-                    if value.type != "star_expr"]
-        elif array_node.type == 'dictorsetmaker':
+        if array_node.type == 'dictorsetmaker':
             kv = []
             iterator = iter(array_node.children)
             for key in iterator:
@@ -390,27 +384,26 @@ class SequenceLiteralValue(Sequence):
                 else:
                     op = next(iterator, None)
                     if op is None or op == ',':
-                        if key.type == "star_expr":
-                            # pep 448 single-star unpacking
-                            # for now ignoring values imported by *
-                            pass
-                        else:
+                        if key.type != "star_expr":
                             kv.append(key)  # A set.
                     else:
                         assert op == ':'  # A dict.
                         kv.append((key, next(iterator)))
                         next(iterator, None)  # Possible comma.
             return kv
+        elif array_node.type == 'testlist_comp':
+            # filter out (for now) pep 448 single-star unpacking
+            return [value for value in array_node.children[::2]
+                    if value.type != "star_expr"]
+        elif array_node.type == "star_expr":
+            # pep 448 single-star unpacking
+            # for now ignoring values imported by *
+            return []
         else:
-            if array_node.type == "star_expr":
-                # pep 448 single-star unpacking
-                # for now ignoring values imported by *
-                return []
-            else:
-                return [array_node]
+            return [array_node]
 
     def __repr__(self):
-        return "<%s of %s>" % (self.__class__.__name__, self.atom)
+        return f"<{self.__class__.__name__} of {self.atom}>"
 
 
 class DictLiteralValue(_DictMixin, SequenceLiteralValue, _DictKeyMixin):
@@ -431,7 +424,7 @@ class DictLiteralValue(_DictMixin, SequenceLiteralValue, _DictKeyMixin):
                 for key_v in k.execute_operation(compiled_value_index, '=='):
                     if key_v.get_safe_value():
                         return self._defining_context.infer_node(value)
-        raise SimpleGetItemNotFound('No key found in dictionary %s.' % self)
+        raise SimpleGetItemNotFound(f'No key found in dictionary {self}.')
 
     def py__iter__(self, contextualized_node=None):
         """
@@ -510,7 +503,7 @@ class _FakeSequence(Sequence):
         return bool(len(self._lazy_value_list))
 
     def __repr__(self):
-        return "<%s of %s>" % (type(self).__name__, self._lazy_value_list)
+        return f"<{type(self).__name__} of {self._lazy_value_list}>"
 
 
 class FakeTuple(_FakeSequence):
@@ -554,7 +547,7 @@ class FakeDict(_DictMixin, Sequence, _DictKeyMixin):
         return self._dct.items()
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self._dct)
+        return f'<{self.__class__.__name__}: {self._dct}>'
 
 
 class MergedArray(Sequence):
@@ -589,16 +582,24 @@ def unpack_tuple_to_dict(context, types, exprlist):
             try:
                 part = next(parts)
             except StopIteration:
-                analysis.add(context, 'value-error-too-many-values', part,
-                             message="ValueError: too many values to unpack (expected %s)" % n)
+                analysis.add(
+                    context,
+                    'value-error-too-many-values',
+                    part,
+                    message=f"ValueError: too many values to unpack (expected {n})",
+                )
             else:
                 dct.update(unpack_tuple_to_dict(context, lazy_value.infer(), part))
         has_parts = next(parts, None)
         if types and has_parts is not None:
-            analysis.add(context, 'value-error-too-few-values', has_parts,
-                         message="ValueError: need more than %s values to unpack" % n)
+            analysis.add(
+                context,
+                'value-error-too-few-values',
+                has_parts,
+                message=f"ValueError: need more than {n} values to unpack",
+            )
         return dct
-    elif exprlist.type == 'power' or exprlist.type == 'atom_expr':
+    elif exprlist.type in ['power', 'atom_expr']:
         # Something like ``arr[x], var = ...``.
         # This is something that is not yet supported, would also be difficult
         # to write into a dict.

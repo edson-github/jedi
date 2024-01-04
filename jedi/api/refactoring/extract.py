@@ -23,7 +23,7 @@ def extract_variable(inference_state, path, module_node, name, pos, until_pos):
     if not is_expression:
         raise RefactoringError(message)
 
-    generated_code = name + ' = ' + _expression_nodes_to_string(nodes)
+    generated_code = f'{name} = {_expression_nodes_to_string(nodes)}'
     file_to_node_changes = {path: _replace(nodes, name, generated_code, pos)}
     return Refactoring(inference_state, file_to_node_changes)
 
@@ -36,7 +36,7 @@ def _is_expression_with_error(nodes):
         return False, 'Cannot extract a name that defines something'
 
     if nodes[0].type not in _VARIABLE_EXCTRACTABLE:
-        return False, 'Cannot extract a "%s"' % nodes[0].type
+        return False, f'Cannot extract a "{nodes[0].type}"'
     return True, ''
 
 
@@ -195,7 +195,7 @@ def _remove_unwanted_expression_nodes(parent_node, pos, until_pos):
                 break
         nodes = nodes[start_index:end_index + 1]
         if not is_suite_part:
-            nodes[0:1] = _remove_unwanted_expression_nodes(nodes[0], pos, until_pos)
+            nodes[:1] = _remove_unwanted_expression_nodes(nodes[0], pos, until_pos)
             nodes[-1:] = _remove_unwanted_expression_nodes(nodes[-1], pos, until_pos)
         return nodes
     return [parent_node]
@@ -223,7 +223,7 @@ def extract_function(inference_state, path, module_context, name, pos, until_pos
         node = _get_code_insertion_node(context.tree_node, is_bound_method)
         insert_before_leaf = node.get_first_leaf()
     if is_expression:
-        code_block = 'return ' + _expression_nodes_to_string(nodes) + '\n'
+        code_block = f'return {_expression_nodes_to_string(nodes)}' + '\n'
         remaining_prefix = None
         has_ending_return_stmt = False
     else:
@@ -247,7 +247,7 @@ def extract_function(inference_state, path, module_context, name, pos, until_pos
         code_block = dedent(code_block)
         if not has_ending_return_stmt:
             output_var_str = ', '.join(return_variables)
-            code_block += 'return ' + output_var_str + '\n'
+            code_block += f'return {output_var_str}' + '\n'
 
     # Check if we have to raise RefactoringError
     _check_for_non_extractables(nodes[:-1] if has_ending_return_stmt else nodes)
@@ -273,17 +273,13 @@ def extract_function(inference_state, path, module_context, name, pos, until_pos
         indent_block(code_block)
     )
 
-    function_call = '%s(%s)' % (
-        ('' if self_param is None else self_param + '.') + name,
-        ', '.join(params)
-    )
+    function_call = f"{('' if self_param is None else f'{self_param}.') + name}({', '.join(params)})"
     if is_expression:
         replacement = function_call
+    elif has_ending_return_stmt:
+        replacement = f'return {function_call}' + '\n'
     else:
-        if has_ending_return_stmt:
-            replacement = 'return ' + function_call + '\n'
-        else:
-            replacement = output_var_str + ' = ' + function_call + '\n'
+        replacement = f'{output_var_str} = {function_call}' + '\n'
 
     replacement_dct = _replace(nodes, replacement, function_code, pos,
                                insert_before_leaf, remaining_prefix)
@@ -327,12 +323,11 @@ def _find_inputs_and_outputs(module_context, context, nodes):
         if name.is_definition():
             if name not in outputs:
                 outputs.append(name.value)
-        else:
-            if name.value not in inputs:
-                name_definitions = context.goto(name, name.start_pos)
-                if not name_definitions \
-                        or _is_name_input(module_context, name_definitions, first, last):
-                    inputs.append(name.value)
+        elif name.value not in inputs:
+            name_definitions = context.goto(name, name.start_pos)
+            if not name_definitions \
+                    or _is_name_input(module_context, name_definitions, first, last):
+                inputs.append(name.value)
 
     # Check if outputs are really needed:
     return inputs, outputs

@@ -108,8 +108,7 @@ def complete_param_names(func):
 
 def _goto_pytest_fixture(module_context, name, skip_own_module):
     for module_context in _iter_pytest_modules(module_context, skip_own_module=skip_own_module):
-        names = FixtureFilter(module_context).get(name)
-        if names:
+        if names := FixtureFilter(module_context).get(name):
             return names
 
 
@@ -149,14 +148,13 @@ def _find_pytest_plugin_modules() -> List[List[str]]:
 
         if sys.version_info >= (3, 9):
             return [ep.module.split(".") for ep in pytest_entry_points]
-        else:
-            # Python 3.8 doesn't have `EntryPoint.module`. Implement equivalent
-            # to what Python 3.9 does (with additional None check to placate `mypy`)
-            matches = [
-                ep.pattern.match(ep.value)
-                for ep in pytest_entry_points
-            ]
-            return [x.group('module').split(".") for x in matches if x]
+        # Python 3.8 doesn't have `EntryPoint.module`. Implement equivalent
+        # to what Python 3.9 does (with additional None check to placate `mypy`)
+        matches = [
+            ep.pattern.match(ep.value)
+            for ep in pytest_entry_points
+        ]
+        return [x.group('module').split(".") for x in matches if x]
 
     else:
         from pkg_resources import iter_entry_points

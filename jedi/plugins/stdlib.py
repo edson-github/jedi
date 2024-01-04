@@ -160,7 +160,7 @@ def argument_clinic(clinic_string, want_value=False, want_context=False,
             except ParamIssue:
                 return NO_VALUES
 
-            debug.dbg('builtin start %s' % value, color='MAGENTA')
+            debug.dbg(f'builtin start {value}', color='MAGENTA')
             kwargs = {}
             if want_context:
                 kwargs['context'] = arguments.context
@@ -177,6 +177,7 @@ def argument_clinic(clinic_string, want_value=False, want_context=False,
             return result
 
         return wrapper
+
     return f
 
 
@@ -199,21 +200,16 @@ def builtins_getattr(objects, names, defaults=None):
     for value in objects:
         for name in names:
             string = get_str_or_none(name)
-            if string is None:
-                debug.warning('getattr called without str')
-                continue
-            else:
+            if string is not None:
                 return value.py__getattribute__(string)
+            debug.warning('getattr called without str')
+            continue
     return NO_VALUES
 
 
 @argument_clinic('object[, bases, dict], /')
 def builtins_type(objects, bases, dicts):
-    if bases or dicts:
-        # It's a type creation... maybe someday...
-        return NO_VALUES
-    else:
-        return objects.py__class__()
+    return NO_VALUES if bases or dicts else objects.py__class__()
 
 
 class SuperInstance(LazyValueWrapper):
@@ -227,25 +223,20 @@ class SuperInstance(LazyValueWrapper):
 
     def _get_wrapped_value(self):
         objs = self._get_bases()[0].infer().execute_with_values()
-        if not objs:
-            # This is just a fallback and will only be used, if it's not
-            # possible to find a class
-            return self._instance
-        return next(iter(objs))
+        return self._instance if not objs else next(iter(objs))
 
     def get_filters(self, origin_scope=None):
         for b in self._get_bases():
             for value in b.infer().execute_with_values():
-                for f in value.get_filters():
-                    yield f
+                yield from value.get_filters()
 
 
 @argument_clinic('[type[, value]], /', want_context=True)
 def builtins_super(types, objects, context):
     instance = None
-    if isinstance(context, AnonymousMethodExecutionContext):
-        instance = context.instance
-    elif isinstance(context, MethodExecutionContext):
+    if isinstance(
+        context, (AnonymousMethodExecutionContext, MethodExecutionContext)
+    ):
         instance = context.instance
     if instance is None:
         return NO_VALUES
@@ -297,7 +288,7 @@ def builtins_isinstance(objects, types, arguments, inference_state):
             # This is temporary. Everything should have a class attribute in
             # Python?! Maybe we'll leave it here, because some numpy objects or
             # whatever might not.
-            bool_results = set([True, False])
+            bool_results = {True, False}
             break
 
         mro = list(cls.py__mro__())
@@ -316,10 +307,8 @@ def builtins_isinstance(objects, types, arguments, inference_state):
             else:
                 _, lazy_value = list(arguments.unpack())[1]
                 if isinstance(lazy_value, LazyTreeValue):
+                    message = f'TypeError: isinstance() arg 2 must be a class, type, or tuple of classes and types, not {cls_or_tup}.'
                     node = lazy_value.data
-                    message = 'TypeError: isinstance() arg 2 must be a ' \
-                              'class, type, or tuple of classes and types, ' \
-                              'not %s.' % cls_or_tup
                     analysis.add(lazy_value.context, 'type-error-isinstance', node, message)
 
     return ValueSet(
@@ -370,8 +359,7 @@ class ClassMethodArguments(TreeArgumentsWrapper):
 
     def unpack(self, func=None):
         yield None, LazyKnownValue(self._class)
-        for values in self._wrapped_arguments.unpack(func):
-            yield values
+        yield from self._wrapped_arguments.unpack(func)
 
 
 @argument_clinic('sequence, /', want_value=True, want_arguments=True)
@@ -488,9 +476,7 @@ class PartialObject(ValueWrapper):
         if funcs is None:
             return []
 
-        arg_count = 0
-        if self._instance is not None:
-            arg_count = 1
+        arg_count = 1 if self._instance is not None else 0
         keys = set()
         for key, _ in unpacked_arguments:
             if key is None:
@@ -556,10 +542,8 @@ class MergedPartialArguments(AbstractArguments):
         next(unpacked, None)
         if self._instance is not None:
             yield None, LazyKnownValue(self._instance)
-        for key_lazy_value in unpacked:
-            yield key_lazy_value
-        for key_lazy_value in self._call_arguments.unpack(funcdef):
-            yield key_lazy_value
+        yield from unpacked
+        yield from self._call_arguments.unpack(funcdef)
 
 
 def functools_partial(value, arguments, callback):
@@ -592,10 +576,7 @@ def _random_choice(sequences):
 
 def _dataclass(value, arguments, callback):
     for c in _follow_param(value.inference_state, arguments, 0):
-        if c.is_class():
-            return ValueSet([DataclassWrapper(c)])
-        else:
-            return ValueSet([value])
+        return ValueSet([DataclassWrapper(c)]) if c.is_class() else ValueSet([value])
     return NO_VALUES
 
 
@@ -612,10 +593,7 @@ class DataclassWrapper(ValueWrapper, ClassMixin):
                     d = name.tree_name.get_definition()
                     annassign = d.children[1]
                     if d.type == 'expr_stmt' and annassign.type == 'annassign':
-                        if len(annassign.children) < 4:
-                            default = None
-                        else:
-                            default = annassign.children[3]
+                        default = None if len(annassign.children) < 4 else annassign.children[3]
                         param_names.append(DataclassParamName(
                             parent_context=cls.parent_context,
                             tree_name=name.tree_name,
@@ -718,10 +696,10 @@ def _create_string_input_function(func):
                 if s is not None:
                     s = func(s)
                     yield compiled.create_simple_object(value.inference_state, s)
+
         values = ValueSet(iterate())
-        if values:
-            return values
-        return value.py__call__(arguments)
+        return values if values else value.py__call__(arguments)
+
     return wrapper
 
 
@@ -851,8 +829,7 @@ class EnumInstance(LazyValueWrapper):
     def _get_wrapped_value(self):
         n = self._name.string_name
         if n.startswith('__') and n.endswith('__') or self._name.api_type == 'function':
-            inferred = self._name.infer()
-            if inferred:
+            if inferred := self._name.infer():
                 return next(iter(inferred))
             o, = self.inference_state.builtins_module.py__getattribute__('object')
             return o
@@ -865,8 +842,7 @@ class EnumInstance(LazyValueWrapper):
             name=compiled.create_simple_object(self.inference_state, self._name.string_name).name,
             value=self._name,
         ))
-        for f in self._get_wrapped_value().get_filters():
-            yield f
+        yield from self._get_wrapped_value().get_filters()
 
 
 def tree_name_to_values(func):

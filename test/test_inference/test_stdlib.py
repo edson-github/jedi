@@ -18,7 +18,7 @@ def test_namedtuple_str(letter, expected, Script):
         dave = Person('Dave', False)
         dave.%s""") % letter
     result = Script(source).complete()
-    completions = set(r.name for r in result)
+    completions = {r.name for r in result}
     assert completions == set(expected)
 
 
@@ -29,7 +29,7 @@ def test_namedtuple_list(Script):
         garfield = Cat(4, '85cm', True)
         garfield.l""")
     result = Script(source).complete()
-    completions = set(r.name for r in result)
+    completions = {r.name for r in result}
     assert completions == {'legs', 'length', 'large'}
 
 
@@ -45,10 +45,10 @@ def test_namedtuple_content(Script):
         x, = Script(source).infer()
         return x.name
 
-    assert d(source + 'unnamed.bar') == 'int'
-    assert d(source + 'unnamed.baz') == 'str'
-    assert d(source + 'named.bar') == 'float'
-    assert d(source + 'named.baz') == 'int'
+    assert d(f'{source}unnamed.bar') == 'int'
+    assert d(f'{source}unnamed.baz') == 'str'
+    assert d(f'{source}named.bar') == 'float'
+    assert d(f'{source}named.baz') == 'int'
 
 
 def test_nested_namedtuples(Script):

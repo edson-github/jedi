@@ -123,9 +123,7 @@ def import_module_decorator(func):
 
         stub = try_to_load_stub_cached(inference_state, import_names, python_value_set,
                                        parent_module_value, sys_path)
-        if stub is not None:
-            return ValueSet([stub])
-        return python_value_set
+        return ValueSet([stub]) if stub is not None else python_value_set
 
     return wrapper
 
@@ -167,7 +165,7 @@ def _try_to_load_stub(inference_state, import_names, python_value_set,
     if len(import_names) == 1:
         # foo-stubs
         for p in sys_path:
-            init = os.path.join(p, *import_names) + '-stubs' + os.path.sep + '__init__.pyi'
+            init = f'{os.path.join(p, *import_names)}-stubs{os.path.sep}__init__.pyi'
             m = _try_to_load_stub_from_file(
                 inference_state,
                 python_value_set,
@@ -196,7 +194,7 @@ def _try_to_load_stub(inference_state, import_names, python_value_set,
             if c.is_namespace():
                 file_paths = [os.path.join(p, '__init__.pyi') for p in c.py__path__()]
             elif file_path is not None and file_path.suffix == '.py':
-                file_paths = [str(file_path) + 'i']
+                file_paths = [f'{str(file_path)}i']
 
             for file_path in file_paths:
                 m = _try_to_load_stub_from_file(
@@ -228,7 +226,7 @@ def _try_to_load_stub(inference_state, import_names, python_value_set,
             m = _try_to_load_stub_from_file(
                 inference_state,
                 python_value_set,
-                file_io=FileIO(os.path.join(p, *names_for_path) + '.pyi'),
+                file_io=FileIO(f'{os.path.join(p, *names_for_path)}.pyi'),
                 import_names=import_names,
             )
             if m is not None:
@@ -298,8 +296,10 @@ def create_stub_module(inference_state, grammar, python_value_set,
     else:
         module_cls = StubModuleValue
     file_name = os.path.basename(file_io.path)
-    stub_module_value = module_cls(
-        python_value_set, inference_state, stub_module_node,
+    return module_cls(
+        python_value_set,
+        inference_state,
+        stub_module_node,
         file_io=file_io,
         string_names=import_names,
         # The code was loaded with latest_grammar, so use
@@ -307,4 +307,3 @@ def create_stub_module(inference_state, grammar, python_value_set,
         code_lines=get_cached_code_lines(grammar, file_io.path),
         is_package=file_name == '__init__.pyi',
     )
-    return stub_module_value

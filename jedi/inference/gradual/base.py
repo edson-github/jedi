@@ -34,7 +34,7 @@ class _BoundTypeVarName(AbstractNameDefinition):
         return self._type_var.py__name__()
 
     def __repr__(self):
-        return '<%s %s -> %s>' % (self.__class__.__name__, self.py__name__(), self._value_set)
+        return f'<{self.__class__.__name__} {self.py__name__()} -> {self._value_set}>'
 
 
 class _TypeVarFilter:
@@ -69,11 +69,7 @@ class _TypeVarFilter:
 
 class _AnnotatedClassContext(ClassContext):
     def get_filters(self, *args, **kwargs):
-        filters = super().get_filters(
-            *args, **kwargs
-        )
-        yield from filters
-
+        yield from super().get_filters(*args, **kwargs)
         # The type vars can only be looked up if it's a global search and
         # not a direct lookup on the class.
         yield self._value.get_type_var_filter()
@@ -150,11 +146,7 @@ class DefineGenericBaseClass(LazyValueWrapper):
         return []
 
     def __repr__(self):
-        return '<%s: %s%s>' % (
-            self.__class__.__name__,
-            self._wrapped_value,
-            list(self.get_generics()),
-        )
+        return f'<{self.__class__.__name__}: {self._wrapped_value}{list(self.get_generics())}>'
 
 
 class GenericClass(DefineGenericBaseClass, ClassMixin):
@@ -179,9 +171,7 @@ class GenericClass(DefineGenericBaseClass, ClassMixin):
         # because that's what you can use in annotations.
         n = dict(list="List", dict="Dict", set="Set", tuple="Tuple").get(n, n)
         s = n + self._generics_manager.get_type_hint()
-        if add_class_info:
-            return 'Type[%s]' % s
-        return s
+        return f'Type[{s}]' if add_class_info else s
 
     def get_type_var_filter(self):
         return _TypeVarFilter(self.get_generics(), self.list_type_vars())
@@ -216,8 +206,7 @@ class GenericClass(DefineGenericBaseClass, ClassMixin):
         annotation_name = self.py__name__()
         type_var_dict = {}
         if annotation_name == 'Iterable':
-            annotation_generics = self.get_generics()
-            if annotation_generics:
+            if annotation_generics := self.get_generics():
                 return annotation_generics[0].infer_type_vars(
                     value_set.merge_types_of_iterate(),
                 )
@@ -265,18 +254,17 @@ class _LazyGenericBaseClass:
                     base._wrapped_value,
                     TupleGenericManager(tuple(self._remap_type_vars(base))),
                 )
+            elif base.is_class_mixin():
+                # This case basically allows classes like `class Foo(List)`
+                # to be used like `Foo[int]`. The generics are not
+                # necessary and can be used later.
+                yield GenericClass.create_cached(
+                    base.inference_state,
+                    base,
+                    self._generics_manager,
+                )
             else:
-                if base.is_class_mixin():
-                    # This case basically allows classes like `class Foo(List)`
-                    # to be used like `Foo[int]`. The generics are not
-                    # necessary and can be used later.
-                    yield GenericClass.create_cached(
-                        base.inference_state,
-                        base,
-                        self._generics_manager,
-                    )
-                else:
-                    yield base
+                yield base
 
     def _remap_type_vars(self, base):
         from jedi.inference.gradual.type_var import TypeVar
@@ -297,7 +285,7 @@ class _LazyGenericBaseClass:
             yield new
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self._lazy_base_class)
+        return f'<{self.__class__.__name__}: {self._lazy_base_class}>'
 
 
 class _GenericInstanceWrapper(ValueWrapper):
@@ -367,7 +355,7 @@ class _PseudoTreeNameClass(Value):
         return (self._tree_name.value,)
 
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, self._tree_name.value)
+        return f'{self.__class__.__name__}({self._tree_name.value})'
 
 
 class BaseTypingValue(LazyValueWrapper):
@@ -387,7 +375,7 @@ class BaseTypingValue(LazyValueWrapper):
         return self._wrapped_value.get_signatures()
 
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, self._tree_name.value)
+        return f'{self.__class__.__name__}({self._tree_name.value})'
 
 
 class BaseTypingClassWithGenerics(DefineGenericBaseClass):
@@ -401,8 +389,7 @@ class BaseTypingClassWithGenerics(DefineGenericBaseClass):
         return _PseudoTreeNameClass(self.parent_context, self._tree_name)
 
     def __repr__(self):
-        return '%s(%s%s)' % (self.__class__.__name__, self._tree_name.value,
-                             self._generics_manager)
+        return f'{self.__class__.__name__}({self._tree_name.value}{self._generics_manager})'
 
 
 class BaseTypingInstance(LazyValueWrapper):
@@ -431,4 +418,4 @@ class BaseTypingInstance(LazyValueWrapper):
         return object_
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self._generics_manager)
+        return f'<{self.__class__.__name__}: {self._generics_manager}>'

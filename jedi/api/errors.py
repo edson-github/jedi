@@ -39,8 +39,4 @@ class SyntaxError:
         return self._parso_error.message
 
     def __repr__(self):
-        return '<%s from=%s to=%s>' % (
-            self.__class__.__name__,
-            self._parso_error.start_pos,
-            self._parso_error.end_pos,
-        )
+        return f'<{self.__class__.__name__} from={self._parso_error.start_pos} to={self._parso_error.end_pos}>'

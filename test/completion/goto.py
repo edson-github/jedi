@@ -244,8 +244,8 @@ def y():
     pass
 
 class ClassDec():
-    def class_func(func):
-        return func
+    def class_func(self):
+        return self
 
 #! 14 ['def class_func']
 @ClassDec.class_func

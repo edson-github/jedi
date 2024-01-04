@@ -1,4 +1,1 @@
-if name:
-    env = 1
-else:
-    env = 2
+env = 1 if name else 2

@@ -293,7 +293,7 @@ class Project:
         debug.dbg('Search for string %s, complete=%s', string, complete)
         wanted_type, wanted_names = split_search_string(string)
         name = wanted_names[0]
-        stub_folder_name = name + '-stubs'
+        stub_folder_name = f'{name}-stubs'
 
         ios = recurse_find_python_folders_and_files(FolderIO(str(self._path)))
         file_ios = []
@@ -302,21 +302,20 @@ class Project:
         for folder_io, file_io in ios:
             if file_io is None:
                 file_name = folder_io.get_base_name()
-                if file_name == name or file_name == stub_folder_name:
-                    f = folder_io.get_file_io('__init__.py')
+                if file_name not in [name, stub_folder_name]:
+                    continue
+                f = folder_io.get_file_io('__init__.py')
+                try:
+                    m = load_module_from_path(inference_state, f).as_context()
+                except FileNotFoundError:
+                    f = folder_io.get_file_io('__init__.pyi')
                     try:
                         m = load_module_from_path(inference_state, f).as_context()
                     except FileNotFoundError:
-                        f = folder_io.get_file_io('__init__.pyi')
-                        try:
-                            m = load_module_from_path(inference_state, f).as_context()
-                        except FileNotFoundError:
-                            m = load_namespace_from_path(inference_state, folder_io).as_context()
-                else:
-                    continue
+                        m = load_namespace_from_path(inference_state, folder_io).as_context()
             else:
                 file_ios.append(file_io)
-                if Path(file_io.path).name in (name + '.py', name + '.pyi'):
+                if Path(file_io.path).name in (f'{name}.py', f'{name}.pyi'):
                     m = load_module_from_path(inference_state, file_io).as_context()
                 else:
                     continue
@@ -367,7 +366,7 @@ class Project:
         )
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self._path)
+        return f'<{self.__class__.__name__}: {self._path}>'
 
 
 def _is_potential_project(path):

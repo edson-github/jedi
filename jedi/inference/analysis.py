@@ -50,8 +50,7 @@ class Error:
         return first + str(CODES[self.name][0])
 
     def __str__(self):
-        return '%s:%s:%s: %s %s' % (self.path, self.line, self.column,
-                                    self.code, self.message)
+        return f'{self.path}:{self.line}:{self.column}: {self.code} {self.message}'
 
     def __eq__(self, other):
         return (self.path == other.path and self.name == other.name
@@ -64,9 +63,7 @@ class Error:
         return hash((self.path, self._start_pos, self.name))
 
     def __repr__(self):
-        return '<%s %s: %s@%s,%s>' % (self.__class__.__name__,
-                                      self.name, self.path,
-                                      self._start_pos[0], self._start_pos[1])
+        return f'<{self.__class__.__name__} {self.name}: {self.path}@{self._start_pos[0]},{self._start_pos[1]}>'
 
 
 class Warning(Error):
@@ -102,14 +99,15 @@ def _check_for_setattr(instance):
     except KeyError:
         return False
 
-    return any(node.start_pos < n.start_pos < node.end_pos
-               # Check if it's a function called setattr.
-               and not (n.parent.type == 'funcdef' and n.parent.name == n)
-               for n in stmt_names)
+    return any(
+        node.start_pos < n.start_pos < node.end_pos
+        and (n.parent.type != 'funcdef' or n.parent.name != n)
+        for n in stmt_names
+    )
 
 
 def add_attribute_error(name_context, lookup_value, name):
-    message = ('AttributeError: %s has no attribute %s.' % (lookup_value, name))
+    message = f'AttributeError: {lookup_value} has no attribute {name}.'
     # Check for __getattr__/__getattribute__ existance and issue a warning
     # instead of an error, if that happens.
     typ = Error
@@ -154,20 +152,19 @@ def _check_for_exception_catch(node_context, jedi_name, exception, payload=None)
         for node in obj.get_except_clause_tests():
             if node is None:
                 return True  # An exception block that catches everything.
-            else:
-                except_classes = node_context.infer_node(node)
-                for cls in except_classes:
-                    from jedi.inference.value import iterable
-                    if isinstance(cls, iterable.Sequence) and \
-                            cls.array_type == 'tuple':
-                        # multiple exceptions
-                        for lazy_value in cls.py__iter__():
-                            for typ in lazy_value.infer():
-                                if check_match(typ, exception):
-                                    return True
-                    else:
-                        if check_match(cls, exception):
-                            return True
+            except_classes = node_context.infer_node(node)
+            for cls in except_classes:
+                from jedi.inference.value import iterable
+                if isinstance(cls, iterable.Sequence) and \
+                        cls.array_type == 'tuple':
+                    # multiple exceptions
+                    for lazy_value in cls.py__iter__():
+                        for typ in lazy_value.infer():
+                            if check_match(typ, exception):
+                                return True
+                else:
+                    if check_match(cls, exception):
+                        return True
 
     def check_hasattr(node, suite):
         try:

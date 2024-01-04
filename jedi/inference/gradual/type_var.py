@@ -39,9 +39,7 @@ class TypeVarClass(ValueWrapper):
             return None
         else:
             safe_value = method(default=None)
-            if isinstance(safe_value, str):
-                return safe_value
-            return None
+            return safe_value if isinstance(safe_value, str) else None
 
 
 class TypeVar(BaseTypingValue):
@@ -56,15 +54,14 @@ class TypeVar(BaseTypingValue):
         for key, lazy_value in unpacked_args:
             if key is None:
                 self._constraints_lazy_values.append(lazy_value)
+            elif key == 'bound':
+                self._bound_lazy_value = lazy_value
+            elif key == 'covariant':
+                self._covariant_lazy_value = lazy_value
+            elif key == 'contravariant':
+                self._contra_variant_lazy_value = lazy_value
             else:
-                if key == 'bound':
-                    self._bound_lazy_value = lazy_value
-                elif key == 'covariant':
-                    self._covariant_lazy_value = lazy_value
-                elif key == 'contravariant':
-                    self._contra_variant_lazy_value = lazy_value
-                else:
-                    debug.warning('Invalid TypeVar param name %s', key)
+                debug.warning('Invalid TypeVar param name %s', key)
 
     def py__name__(self):
         return self._var_name
@@ -115,7 +112,7 @@ class TypeVar(BaseTypingValue):
         return {annotation_name: ValueSet(iterate())}
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self.py__name__())
+        return f'<{self.__class__.__name__}: {self.py__name__()}>'
 
 
 class TypeWrapper(ValueWrapper):

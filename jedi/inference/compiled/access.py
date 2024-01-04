@@ -105,8 +105,9 @@ def shorten_repr(func):
     def wrapper(self):
         r = func(self)
         if len(r) > 50:
-            r = r[:50] + '..'
+            r = f'{r[:50]}..'
         return r
+
     return wrapper
 
 
@@ -121,7 +122,7 @@ def load_module(inference_state, dotted_name, sys_path):
     except ImportError:
         # If a module is "corrupt" or not really a Python module or whatever.
         warnings.warn(
-            "Module %s not importable in path %s." % (dotted_name, sys_path),
+            f"Module {dotted_name} not importable in path {sys_path}.",
             UserWarning,
             stacklevel=2,
         )
@@ -170,7 +171,7 @@ class DirectObjectAccess:
         self._obj = obj
 
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, self.get_repr())
+        return f'{self.__class__.__name__}({self.get_repr()})'
 
     def _create_access(self, obj):
         return create_access(self._inference_state, obj)
@@ -402,22 +403,20 @@ class DirectObjectAccess:
         module = inspect.getmodule(return_obj)
         if module is None:
             module = inspect.getmodule(type(return_obj))
-            if module is None:
-                module = builtins
+        if module is None:
+            module = builtins
         return [self._create_access(module), access]
 
     def get_safe_value(self):
         if type(self._obj) in (bool, bytes, float, int, str, slice) or self._obj is None:
             return self._obj
-        raise ValueError("Object is type %s and not simple" % type(self._obj))
+        raise ValueError(f"Object is type {type(self._obj)} and not simple")
 
     def get_api_type(self):
         return get_api_type(self._obj)
 
     def get_array_type(self):
-        if isinstance(self._obj, dict):
-            return 'dict'
-        return None
+        return 'dict' if isinstance(self._obj, dict) else None
 
     def get_key_paths(self):
         def iter_partial_keys():
@@ -543,10 +542,7 @@ class DirectObjectAccess:
         Used to return a couple of infos that are needed when accessing the sub
         objects of an objects
         """
-        tuples = dict(
-            (name, self.is_allowed_getattr(name))
-            for name in self.dir()
-        )
+        tuples = {name: self.is_allowed_getattr(name) for name in self.dir()}
         return self.needs_type_completions(), tuples
 
 

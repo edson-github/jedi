@@ -28,10 +28,10 @@ class _SignatureMixin:
             if is_positional:
                 yield '/'
 
-        s = self.name.string_name + '(' + ', '.join(param_strings()) + ')'
+        s = f'{self.name.string_name}(' + ', '.join(param_strings()) + ')'
         annotation = self.annotation_string
         if annotation:
-            s += ' -> ' + annotation
+            s += f' -> {annotation}'
         return s
 
 
@@ -50,9 +50,7 @@ class AbstractSignature(_SignatureMixin):
 
     def get_param_names(self, resolve_stars=False):
         param_names = self._function_value.get_param_names()
-        if self.is_bound:
-            return param_names[1:]
-        return param_names
+        return param_names[1:] if self.is_bound else param_names
 
     def bind(self, value):
         raise NotImplementedError
@@ -62,8 +60,8 @@ class AbstractSignature(_SignatureMixin):
 
     def __repr__(self):
         if self.value is self._function_value:
-            return '<%s: %s>' % (self.__class__.__name__, self.value)
-        return '<%s: %s, %s>' % (self.__class__.__name__, self.value, self._function_value)
+            return f'<{self.__class__.__name__}: {self.value}>'
+        return f'<{self.__class__.__name__}: {self.value}, {self._function_value}>'
 
 
 class TreeSignature(AbstractSignature):
@@ -85,9 +83,7 @@ class TreeSignature(AbstractSignature):
     @property
     def annotation_string(self):
         a = self._annotation
-        if a is None:
-            return ''
-        return a.get_code(include_prefix=False)
+        return '' if a is None else a.get_code(include_prefix=False)
 
     @memoize_method
     def get_param_names(self, resolve_stars=False):
@@ -95,9 +91,7 @@ class TreeSignature(AbstractSignature):
         if resolve_stars:
             from jedi.inference.star_args import process_params
             params = process_params(params)
-        if self.is_bound:
-            return params[1:]
-        return params
+        return params[1:] if self.is_bound else params
 
     def matches_signature(self, arguments):
         from jedi.inference.param import get_executed_param_names_and_issues
@@ -132,9 +126,7 @@ class BuiltinSignature(AbstractSignature):
 
     @property
     def _function_value(self):
-        if self.__function_value is None:
-            return self.value
-        return self.__function_value
+        return self.value if self.__function_value is None else self.__function_value
 
     def bind(self, value):
         return BuiltinSignature(

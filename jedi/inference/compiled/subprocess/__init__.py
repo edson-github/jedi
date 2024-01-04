@@ -235,15 +235,16 @@ class CompiledSubprocess:
 
     def _send(self, inference_state_id, function, args=(), kwargs={}):
         if self.is_crashed:
-            raise InternalError("The subprocess %s has crashed." % self._executable)
+            raise InternalError(f"The subprocess {self._executable} has crashed.")
 
         data = inference_state_id, function, args, kwargs
         try:
             pickle_dump(data, self._get_process().stdin, PICKLE_PROTOCOL)
         except BrokenPipeError:
             self._kill()
-            raise InternalError("The subprocess %s was killed. Maybe out of memory?"
-                                % self._executable)
+            raise InternalError(
+                f"The subprocess {self._executable} was killed. Maybe out of memory?"
+            )
 
         try:
             is_exception, traceback, result = pickle_load(self._get_process().stdout)
@@ -360,8 +361,8 @@ class AccessHandle:
         try:
             detail = self.access
         except AttributeError:
-            detail = '#' + str(self.id)
-        return '<%s of %s>' % (self.__class__.__name__, detail)
+            detail = f'#{str(self.id)}'
+        return f'<{self.__class__.__name__} of {detail}>'
 
     def __getstate__(self):
         return self.id

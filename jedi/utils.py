@@ -65,6 +65,8 @@ def setup_readline(namespace_module=__main__, fuzzy=False):
             level=logging.DEBUG
         )
 
+
+
     class JediRL:
         def complete(self, text, state):
             """
@@ -80,7 +82,7 @@ def setup_readline(namespace_module=__main__, fuzzy=False):
                 sys.path.insert(0, os.getcwd())
                 # Calling python doesn't have a path, so add to sys.path.
                 try:
-                    logging.debug("Start REPL completion: " + repr(text))
+                    logging.debug(f"Start REPL completion: {repr(text)}")
                     interpreter = Interpreter(text, [namespace_module.__dict__])
 
                     completions = interpreter.complete(fuzzy=fuzzy)
@@ -99,6 +101,7 @@ def setup_readline(namespace_module=__main__, fuzzy=False):
                 return self.matches[state]
             except IndexError:
                 return None
+
 
     try:
         # Need to import this one as well to make sure it's executed before

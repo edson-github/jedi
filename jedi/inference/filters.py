@@ -123,7 +123,7 @@ class _AbstractUsedNamesFilter(AbstractFilter):
         )
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self.parent_context)
+        return f'<{self.__class__.__name__}: {self.parent_context}>'
 
 
 class ParserTreeFilter(_AbstractUsedNamesFilter):
@@ -181,11 +181,7 @@ class _FunctionExecutionFilter(ParserTreeFilter):
     @to_list
     def _convert_names(self, names):
         for name in names:
-            param = search_ancestor(name, 'param')
-            # Here we don't need to check if the param is a default/annotation,
-            # because those are not definitions and never make it to this
-            # point.
-            if param:
+            if param := search_ancestor(name, 'param'):
                 yield self._convert_param(param, name)
             else:
                 yield TreeNameDefinition(self.parent_context, name)
@@ -266,7 +262,7 @@ class MergedFilter:
         return [n for filter in self._filters for n in filter.values()]
 
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(str(f) for f in self._filters))
+        return f"{self.__class__.__name__}({', '.join(str(f) for f in self._filters)})"
 
 
 class _BuiltinMappedMethod(ValueWrapper):

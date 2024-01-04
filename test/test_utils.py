@@ -34,7 +34,7 @@ class TestSetupReadline(unittest.TestCase):
         assert self.complete('list') == ['list']
         assert self.complete('importerror') == ['ImportError']
         s = "print(BaseE"
-        assert self.complete(s) == [s + 'xception']
+        assert self.complete(s) == [f'{s}xception']
 
     def test_nested(self):
         assert self.complete('list.Insert') == ['list.insert']
@@ -55,7 +55,7 @@ class TestSetupReadline(unittest.TestCase):
             string = 'os.path.join("a").upper'
             assert self.complete(string) == [string]
 
-            c = {'os.' + d for d in dir(os) if d.startswith('ch')}
+            c = {f'os.{d}' for d in dir(os) if d.startswith('ch')}
             assert set(self.complete('os.ch')) == set(c)
         finally:
             del self.namespace.sys
@@ -67,7 +67,7 @@ class TestSetupReadline(unittest.TestCase):
 
     def test_import(self):
         s = 'from os.path import a'
-        assert set(self.complete(s)) == {s + 'ltsep', s + 'bspath'}
+        assert set(self.complete(s)) == {f'{s}ltsep', f'{s}bspath'}
         assert self.complete('import keyword') == ['import keyword']
 
         import os
@@ -77,11 +77,25 @@ class TestSetupReadline(unittest.TestCase):
         # items as well as items that are not only available on linux.
         difference = set(self.complete(s)).symmetric_difference(goal)
         difference = {
-            x for x in difference
-            if all(not x.startswith('from os import ' + s)
-                   for s in ['_', 'O_', 'EX_', 'MFD_', 'SF_', 'ST_',
-                             'CLD_', 'POSIX_SPAWN_', 'P_', 'RWF_',
-                             'CLONE_', 'SCHED_'])
+            x
+            for x in difference
+            if all(
+                not x.startswith(f'from os import {s}')
+                for s in [
+                    '_',
+                    'O_',
+                    'EX_',
+                    'MFD_',
+                    'SF_',
+                    'ST_',
+                    'CLD_',
+                    'POSIX_SPAWN_',
+                    'P_',
+                    'RWF_',
+                    'CLONE_',
+                    'SCHED_',
+                ]
+            )
         }
         # There are quite a few differences, because both Windows and Linux
         # (posix and nt) libraries are included.
@@ -93,7 +107,7 @@ class TestSetupReadline(unittest.TestCase):
 
     def test_preexisting_values(self):
         self.namespace.a = range(10)
-        assert set(self.complete('a.')) == {'a.' + n for n in dir(range(1))}
+        assert set(self.complete('a.')) == {f'a.{n}' for n in dir(range(1))}
         del self.namespace.a
 
     def test_colorama(self):

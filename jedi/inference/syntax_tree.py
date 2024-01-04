@@ -1,6 +1,7 @@
 """
 Functions inferring the syntax tree.
 """
+
 import copy
 import itertools
 
@@ -48,7 +49,7 @@ operator_to_magic_method = {
 }
 
 reverse_operator_to_magic_method = {
-    k: '__r' + v[2:] for k, v in operator_to_magic_method.items()
+    k: f'__r{v[2:]}' for k, v in operator_to_magic_method.items()
 }
 
 
@@ -98,63 +99,63 @@ def infer_node(context, element):
             if_stmt = None
             break
     predefined_if_name_dict = context.predefined_names.get(if_stmt)
-    # TODO there's a lot of issues with this one. We actually should do
-    # this in a different way. Caching should only be active in certain
-    # cases and this all sucks.
-    if predefined_if_name_dict is None and if_stmt \
-            and if_stmt.type == 'if_stmt' and context.inference_state.is_analysis:
-        if_stmt_test = if_stmt.children[1]
-        name_dicts = [{}]
-        # If we already did a check, we don't want to do it again -> If
-        # value.predefined_names is filled, we stop.
-        # We don't want to check the if stmt itself, it's just about
-        # the content.
-        if element.start_pos > if_stmt_test.end_pos:
-            # Now we need to check if the names in the if_stmt match the
-            # names in the suite.
-            if_names = get_names_of_node(if_stmt_test)
-            element_names = get_names_of_node(element)
-            str_element_names = [e.value for e in element_names]
-            if any(i.value in str_element_names for i in if_names):
-                for if_name in if_names:
-                    definitions = context.inference_state.infer(context, if_name)
-                    # Every name that has multiple different definitions
-                    # causes the complexity to rise. The complexity should
-                    # never fall below 1.
-                    if len(definitions) > 1:
-                        if len(name_dicts) * len(definitions) > 16:
-                            debug.dbg('Too many options for if branch inference %s.', if_stmt)
-                            # There's only a certain amount of branches
-                            # Jedi can infer, otherwise it will take to
-                            # long.
-                            name_dicts = [{}]
-                            break
+    if (
+        predefined_if_name_dict is not None
+        or not if_stmt
+        or if_stmt.type != 'if_stmt'
+        or not context.inference_state.is_analysis
+    ):
+        return (
+            _infer_node(context, element)
+            if predefined_if_name_dict
+            else _infer_node_if_inferred(context, element)
+        )
+    if_stmt_test = if_stmt.children[1]
+    name_dicts = [{}]
+    # If we already did a check, we don't want to do it again -> If
+    # value.predefined_names is filled, we stop.
+    # We don't want to check the if stmt itself, it's just about
+    # the content.
+    if element.start_pos > if_stmt_test.end_pos:
+        # Now we need to check if the names in the if_stmt match the
+        # names in the suite.
+        if_names = get_names_of_node(if_stmt_test)
+        element_names = get_names_of_node(element)
+        str_element_names = [e.value for e in element_names]
+        if any(i.value in str_element_names for i in if_names):
+            for if_name in if_names:
+                definitions = context.inference_state.infer(context, if_name)
+                # Every name that has multiple different definitions
+                # causes the complexity to rise. The complexity should
+                # never fall below 1.
+                if len(definitions) > 1:
+                    if len(name_dicts) * len(definitions) > 16:
+                        debug.dbg('Too many options for if branch inference %s.', if_stmt)
+                        # There's only a certain amount of branches
+                        # Jedi can infer, otherwise it will take to
+                        # long.
+                        name_dicts = [{}]
+                        break
 
-                        original_name_dicts = list(name_dicts)
-                        name_dicts = []
-                        for definition in definitions:
-                            new_name_dicts = list(original_name_dicts)
-                            for i, name_dict in enumerate(new_name_dicts):
-                                new_name_dicts[i] = name_dict.copy()
-                                new_name_dicts[i][if_name.value] = ValueSet([definition])
+                    original_name_dicts = list(name_dicts)
+                    name_dicts = []
+                    for definition in definitions:
+                        new_name_dicts = list(original_name_dicts)
+                        for i, name_dict in enumerate(new_name_dicts):
+                            new_name_dicts[i] = name_dict.copy()
+                            new_name_dicts[i][if_name.value] = ValueSet([definition])
 
-                            name_dicts += new_name_dicts
-                    else:
-                        for name_dict in name_dicts:
-                            name_dict[if_name.value] = definitions
-        if len(name_dicts) > 1:
-            result = NO_VALUES
-            for name_dict in name_dicts:
-                with context.predefine_names(if_stmt, name_dict):
-                    result |= _infer_node(context, element)
-            return result
-        else:
-            return _infer_node_if_inferred(context, element)
-    else:
-        if predefined_if_name_dict:
-            return _infer_node(context, element)
-        else:
-            return _infer_node_if_inferred(context, element)
+                        name_dicts += new_name_dicts
+                else:
+                    for name_dict in name_dicts:
+                        name_dict[if_name.value] = definitions
+    if len(name_dicts) <= 1:
+        return _infer_node_if_inferred(context, element)
+    result = NO_VALUES
+    for name_dict in name_dicts:
+        with context.predefine_names(if_stmt, name_dict):
+            result |= _infer_node(context, element)
+    return result
 
 
 def _infer_node_if_inferred(context, element):
@@ -227,7 +228,7 @@ def _infer_node(context, element):
         # Must be an ellipsis, other operators are not inferred.
         if element.value != '...':
             origin = element.parent
-            raise AssertionError("unhandled operator %s in %s " % (repr(element.value), origin))
+            raise AssertionError(f"unhandled operator {repr(element.value)} in {origin} ")
         return ValueSet([compiled.builtin_from_name(inference_state, 'Ellipsis')])
     elif typ == 'dotted_name':
         value_set = infer_atom(context, element.children[0])
@@ -273,10 +274,9 @@ def infer_trailer(context, atom_values, trailer):
                 name_context=context,
                 name_or_str=node
             )
-        else:
-            assert trailer_op == '(', 'trailer_op is actually %s' % trailer_op
-            args = arguments.TreeArguments(context.inference_state, context, node, trailer)
-            return atom_values.execute(args)
+        assert trailer_op == '(', f'trailer_op is actually {trailer_op}'
+        args = arguments.TreeArguments(context.inference_state, context, node, trailer)
+        return atom_values.execute(args)
 
 
 def infer_atom(context, atom):
@@ -311,7 +311,7 @@ def infer_atom(context, atom):
             # Contrary to yield from, yield can just appear alone to return a
             # value when used with `.send()`.
             return NO_VALUES
-        assert False, 'Cannot infer the keyword %s' % atom
+        assert False, f'Cannot infer the keyword {atom}'
 
     elif isinstance(atom, tree.Literal):
         string = state.compiled_subprocess.safe_literal_eval(atom.value)
@@ -328,9 +328,11 @@ def infer_atom(context, atom):
     else:
         c = atom.children
         # Parentheses without commas are not tuples.
-        if c[0] == '(' and not len(c) == 2 \
-                and not (c[1].type == 'testlist_comp'
-                         and len(c[1].children) > 1):
+        if (
+            c[0] == '('
+            and len(c) != 2
+            and (c[1].type != 'testlist_comp' or len(c[1].children) <= 1)
+        ):
             return context.infer_node(c[1])
 
         try:
@@ -369,9 +371,9 @@ def infer_expr_stmt(context, stmt, seek_name=None):
     with recursion.execution_allowed(context.inference_state, stmt) as allowed:
         if allowed:
             if seek_name is not None:
-                pep0484_values = \
-                    annotation.find_type_from_comment_hint_assign(context, stmt, seek_name)
-                if pep0484_values:
+                if pep0484_values := annotation.find_type_from_comment_hint_assign(
+                    context, stmt, seek_name
+                ):
                     return pep0484_values
 
             return _infer_expr_stmt(context, stmt, seek_name)
@@ -466,14 +468,16 @@ def infer_or_test(context, or_test):
 
         # handle type inference of and/or here.
         if operator in ('and', 'or'):
-            left_bools = set(left.py__bool__() for left in types)
-            if left_bools == {True}:
-                if operator == 'and':
-                    types = context.infer_node(right)
-            elif left_bools == {False}:
-                if operator != 'and':
-                    types = context.infer_node(right)
-            # Otherwise continue, because of uncertainty.
+            left_bools = {left.py__bool__() for left in types}
+            if (
+                left_bools == {True}
+                and operator == 'and'
+                or left_bools != {True}
+                and left_bools == {False}
+                and operator != 'and'
+            ):
+                types = context.infer_node(right)
+                    # Otherwise continue, because of uncertainty.
         else:
             types = _infer_comparison(context, types, operator,
                                       context.infer_node(right))
@@ -516,10 +520,7 @@ def _literals_to_types(inference_state, result):
 
 def _infer_comparison(context, left_values, operator, right_values):
     state = context.inference_state
-    if isinstance(operator, str):
-        operator_str = operator
-    else:
-        operator_str = str(operator.value)
+    operator_str = operator if isinstance(operator, str) else str(operator.value)
     if not left_values or not right_values:
         # illegal slices e.g. cause left/right_result to be None
         result = (left_values or NO_VALUES) | (right_values or NO_VALUES)
@@ -592,11 +593,7 @@ def _get_tuple_ints(value):
 def _infer_comparison_part(inference_state, context, left, operator, right):
     l_is_num = is_number(left)
     r_is_num = is_number(right)
-    if isinstance(operator, str):
-        str_operator = operator
-    else:
-        str_operator = str(operator.value)
-
+    str_operator = operator if isinstance(operator, str) else str(operator.value)
     if str_operator == '*':
         # for iterables, ignore * operations
         if isinstance(left, iterable.Sequence) or is_string(left):
@@ -653,8 +650,12 @@ def _infer_comparison_part(inference_state, context, left, operator, right):
             obj.name.string_name in ('int', 'float')
 
     # Static analysis, one is a number, the other one is not.
-    if str_operator in ('+', '-') and l_is_num != r_is_num \
-            and not (check(left) or check(right)):
+    if (
+        str_operator in ('+', '-')
+        and l_is_num != r_is_num
+        and not check(left)
+        and not check(right)
+    ):
         message = "TypeError: unsupported operand type(s) for +: %s and %s"
         analysis.add(context, 'type-error-operation', operator,
                      message % (left, right))
@@ -728,7 +729,7 @@ def tree_name_to_values(inference_state, context, tree_name):
         types = annotation.find_type_from_comment_hint_for(context, node, tree_name)
         if types:
             return types
-    if typ == 'with_stmt':
+    elif typ == 'with_stmt':
         types = annotation.find_type_from_comment_hint_with(context, node, tree_name)
         if types:
             return types
@@ -775,7 +776,7 @@ def tree_name_to_values(inference_state, context, tree_name):
     elif typ == 'namedexpr_test':
         types = infer_node(context, node)
     else:
-        raise ValueError("Should not happen. type: %s" % typ)
+        raise ValueError(f"Should not happen. type: {typ}")
     return types
 
 
@@ -804,8 +805,7 @@ def _apply_decorators(context, node):
         debug.dbg('decorator: %s %s', dec, values, color="MAGENTA")
         with debug.increase_indent_cm():
             dec_values = context.infer_node(dec.children[1])
-            trailer_nodes = dec.children[2:-1]
-            if trailer_nodes:
+            if trailer_nodes := dec.children[2:-1]:
                 # Create a trailer and infer it.
                 trailer = tree.PythonNode('trailer', trailer_nodes)
                 trailer.parent = dec
@@ -871,7 +871,7 @@ def _infer_subscript_list(context, index):
         # Like array[:]
         return ValueSet([iterable.Slice(context, None, None, None)])
 
-    elif index.type == 'subscript' and not index.children[0] == '.':
+    elif index.type == 'subscript' and index.children[0] != '.':
         # subscript basically implies a slice operation
         # e.g. array[:3]
         result = []

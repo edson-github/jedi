@@ -75,51 +75,12 @@ class X:
 '''
 
 
-@pytest.mark.parametrize(
-    'code, expected', [
-        ('def f(a, * args, x): pass\n f(', 'f(a, *args, x)'),
-        ('def f(a, *, x): pass\n f(', 'f(a, *, x)'),
-        ('def f(*, x= 3,**kwargs): pass\n f(', 'f(*, x=3, **kwargs)'),
-        ('def f(x,/,y,* ,z): pass\n f(', 'f(x, /, y, *, z)'),
-        ('def f(a, /, *, x=3, **kwargs): pass\n f(', 'f(a, /, *, x=3, **kwargs)'),
-
-        (classmethod_code + 'X.x(', 'x(a, b)'),
-        (classmethod_code + 'X().x(', 'x(a, b)'),
-        (classmethod_code + 'X.static(', 'static(a, b)'),
-        (classmethod_code + 'X().static(', 'static(a, b)'),
-
-        (partial_code + 'a(', 'func(a, b, c)'),
-        (partial_code + 'b(', 'func(b, c)'),
-        (partial_code + 'c(', 'func(b)'),
-        (partial_code + 'd(', None),
-
-        (partialmethod_code + 'X().a(', 'func(a, b, c)'),
-        (partialmethod_code + 'X().b(', 'func(b, c)'),
-        (partialmethod_code + 'X().c(', 'func(b)'),
-        (partialmethod_code + 'X().d(', None),
-        (partialmethod_code + 'X.c(', 'func(a, b)'),
-        (partialmethod_code + 'X.d(', None),
-
-        ('import contextlib\n@contextlib.contextmanager\ndef f(x): pass\nf(', 'f(x)'),
-
-        # typing lib
-        ('from typing import cast\ncast(', {
+@pytest.mark.parametrize('code, expected', [('def f(a, * args, x): pass\n f(', 'f(a, *args, x)'), ('def f(a, *, x): pass\n f(', 'f(a, *, x)'), ('def f(*, x= 3,**kwargs): pass\n f(', 'f(*, x=3, **kwargs)'), ('def f(x,/,y,* ,z): pass\n f(', 'f(x, /, y, *, z)'), ('def f(a, /, *, x=3, **kwargs): pass\n f(', 'f(a, /, *, x=3, **kwargs)'), (f'{classmethod_code}X.x(', 'x(a, b)'), (f'{classmethod_code}X().x(', 'x(a, b)'), (f'{classmethod_code}X.static(', 'static(a, b)'), (f'{classmethod_code}X().static(', 'static(a, b)'), (f'{partial_code}a(', 'func(a, b, c)'), (f'{partial_code}b(', 'func(b, c)'), (f'{partial_code}c(', 'func(b)'), (f'{partial_code}d(', None), (f'{partialmethod_code}X().a(', 'func(a, b, c)'), (f'{partialmethod_code}X().b(', 'func(b, c)'), (f'{partialmethod_code}X().c(', 'func(b)'), (f'{partialmethod_code}X().d(', None), (f'{partialmethod_code}X.c(', 'func(a, b)'), (f'{partialmethod_code}X.d(', None), ('import contextlib\n@contextlib.contextmanager\ndef f(x): pass\nf(', 'f(x)'), ('from typing import cast\ncast(', {
             'cast(typ: object, val: Any) -> Any',
             'cast(typ: str, val: Any) -> Any',
-            'cast(typ: Type[_T], val: Any) -> _T'}),
-        ('from typing import TypeVar\nTypeVar(',
+            'cast(typ: Type[_T], val: Any) -> _T'}), ('from typing import TypeVar\nTypeVar(',
          'TypeVar(name: str, *constraints: Type[Any], bound: Union[None, Type[Any], str]=..., '
-         'covariant: bool=..., contravariant: bool=...)'),
-        ('from typing import List\nList(', None),
-        ('from typing import List\nList[int](', None),
-        ('from typing import Tuple\nTuple(', None),
-        ('from typing import Tuple\nTuple[int](', None),
-        ('from typing import Optional\nOptional(', None),
-        ('from typing import Optional\nOptional[int](', None),
-        ('from typing import Any\nAny(', None),
-        ('from typing import NewType\nNewType(', 'NewType(name: str, tp: Type[_T]) -> Type[_T]'),
-    ]
-)
+         'covariant: bool=..., contravariant: bool=...)'), ('from typing import List\nList(', None), ('from typing import List\nList[int](', None), ('from typing import Tuple\nTuple(', None), ('from typing import Tuple\nTuple[int](', None), ('from typing import Optional\nOptional(', None), ('from typing import Optional\nOptional[int](', None), ('from typing import Any\nAny(', None), ('from typing import NewType\nNewType(', 'NewType(name: str, tp: Type[_T]) -> Type[_T]')])
 def test_tree_signature(Script, environment, code, expected):
     # Only test this in the latest version, because of /
     if environment.version_info < (3, 8):
@@ -235,11 +196,11 @@ def test_nested_signatures(Script, environment, combination, expected):
         class G(Generic[T]):
             def __init__(self, i, t: T): ...
     ''')
-    code += 'z = ' + combination + '\nz('
+    code += f'z = {combination}' + '\nz('
     sig, = Script(code).get_signatures()
     computed = sig.to_string()
     if not re.match(r'\w+\(', expected):
-        expected = '<lambda>(' + expected + ')'
+        expected = f'<lambda>({expected})'
     assert expected == computed
 
 

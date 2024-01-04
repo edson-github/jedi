@@ -1,6 +1,7 @@
 """
 Checking for ``list.append`` and all the other possible array modifications.
 """
+
 # -----------------
 # list.append
 # -----------------
@@ -23,8 +24,7 @@ arr[10]
 #? int()
 arr[10].index()
 
-arr = list([])
-arr.append(1)
+arr = [1]
 #? int()
 arr[0]
 
@@ -52,9 +52,7 @@ list(arr)[10]
 # list.extend / set.update
 # -----------------
 
-arr = [1.0]
-arr.extend([1,2,3])
-arr.extend([])
+arr = [1.0, 1, 2, 3]
 arr.extend("")
 arr.extend(list)  # should ignore
 
@@ -62,7 +60,7 @@ arr.extend(list)  # should ignore
 arr[100]
 
 a = set(arr)
-a.update(list(["", 1]))
+a.update(["", 1])
 
 #? float() int() str()
 list(a)[0]
@@ -70,15 +68,11 @@ list(a)[0]
 # set/list initialized as functions
 # -----------------
 
-st = set()
-st.add(1)
-
+st = {1}
 #? int()
 for s in st: s
 
-lst = list()
-lst.append(1)
-
+lst = [1]
 #? int()
 for i in lst: i
 
@@ -92,8 +86,7 @@ arr2.append('')
 arr2[0]
 
 
-lst = [1]
-lst.append(1.0)
+lst = [1, 1.0]
 s = set(lst)
 s.add("ahh")
 lst = list(s)
@@ -110,14 +103,10 @@ tuple(lst)[0]
 #? 
 iter(lst)[0]
 
-# -----------------
-# complex including +=
-# -----------------
 class C(): pass
 class D(): pass
 class E(): pass
-lst = [1]
-lst.append(1.0)
+lst = [1, 1.0]
 lst += [C()]
 s = set(lst)
 s.add("")
@@ -158,8 +147,7 @@ res[10]
 # returns, special because the module dicts are not correct here.
 # -----------------
 def blub():
-    a = []
-    a.append(1.0)
+    a = [1.0]
     #? float()
     a[0]
     return a
@@ -169,27 +157,20 @@ blub()[0]
 
 # list with default
 def blub():
-    a = list([1])
-    a.append(1.0)
-    return a
+    return [1, 1.0]
 
 #? int() float()
 blub()[0]
 
 # empty list
 def blub():
-    a = list()
-    a.append(1.0)
-    return a
+    return [1.0]
 #? float()
 blub()[0]
 
 # with if
 def blub():
-    if 1:
-        a = []
-        a.append(1.0)
-        return a
+    return [1.0]
 
 #? float()
 blub()[0]
@@ -197,11 +178,9 @@ blub()[0]
 # with else clause
 def blub():
     if random.choice([0, 1]):
-         1
+        1
     else:
-        a = []
-        a.append(1)
-        return a
+        return [1]
 
 #? int()
 blub()[0]
@@ -210,10 +189,7 @@ blub()[0]
 # -----------------
 class C():
     def blub(self, b):
-        if 1:
-            a = []
-            a.append(b)
-            return a
+        return [b]
 
     def blub2(self):
         """ mapper function """
@@ -223,15 +199,13 @@ class C():
         return a
 
     def literal_arr(self, el):
-        self.a = []
-        self.a.append(el)
+        self.a = [el]
         #? int()
         self.a[0]
         return self.a
 
     def list_arr(self, el):
-        self.b = list([])
-        self.b.append(el)
+        self.b = [el]
         #? float()
         self.b[0]
         return self.b
@@ -255,7 +229,7 @@ C().list_arr(1.0)[0]
 # array recursions
 # -----------------
 
-a = set([1.0])
+a = {1.0}
 a.update(a)
 a.update([1])
 
@@ -263,8 +237,7 @@ a.update([1])
 list(a)[0]
 
 def first(a):
-    b = []
-    b.append(a)
+    b = [a]
     b.extend(second(a))
     return list(b)
 
@@ -298,8 +271,7 @@ st.append('')  # lists should not have an influence
 st.add  # should not cause an exception
 st.add()
 
-st = {1.0}
-st.add(1)
+st = {1.0, 1}
 lst = list(st)
 
 lst.append('')
@@ -326,7 +298,7 @@ some_lst[0]
 #? int str tuple
 some_lst[1]
 
-some_lst2 = list([1])
+some_lst2 = [1]
 some_lst2[3] = ''
 #? int() str()
 some_lst2[0]
@@ -362,9 +334,7 @@ something[3]
 # dict setitem
 # -----------------
 
-some_dct = {'a': float, 1: int}
-some_dct['x'] = list
-some_dct['y'] = tuple
+some_dct = {'a': float, 1: int, 'x': list, 'y': tuple}
 #? list
 some_dct['x']
 #? int float list tuple

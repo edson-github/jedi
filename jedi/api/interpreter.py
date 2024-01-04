@@ -33,10 +33,9 @@ class MixedTreeName(TreeNameDefinition):
         if not inferred:
             for compiled_value in self.parent_context.mixed_values:
                 for f in compiled_value.get_filters():
-                    values = ValueSet.from_sets(
+                    if values := ValueSet.from_sets(
                         n.infer() for n in f.get(self.string_name)
-                    )
-                    if values:
+                    ):
                         return values
         return inferred
 

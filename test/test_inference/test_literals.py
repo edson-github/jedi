@@ -4,12 +4,11 @@ from jedi.inference.value import TreeInstance
 
 def _infer_literal(Script, code, is_fstring=False):
     def_, = Script(code).infer()
-    if is_fstring:
-        assert def_.name == 'str'
-        assert isinstance(def_._name._value, TreeInstance)
-        return ''
-    else:
+    if not is_fstring:
         return def_._name._value.get_safe_value()
+    assert def_.name == 'str'
+    assert isinstance(def_._name._value, TreeInstance)
+    return ''
 
 
 def test_f_strings(Script):

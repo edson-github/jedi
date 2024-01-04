@@ -15,8 +15,9 @@ def assert_signature(Script, source, expected_name, expected_index=0, line=None,
     assert len(signatures) <= 1
 
     if not signatures:
-        assert expected_name is None, \
-            'There are no signatures, but `%s` expected.' % expected_name
+        assert (
+            expected_name is None
+        ), f'There are no signatures, but `{expected_name}` expected.'
     else:
         assert signatures[0].name == expected_name
         assert signatures[0].index == expected_index
@@ -302,8 +303,8 @@ def test_signature_is_definition(Script):
     Check if the attributes match.
     """
     s = """class Spam(): pass\nSpam"""
-    signature = Script(s + '(').get_signatures()[0]
-    definition = Script(s + '(').infer(column=0)[0]
+    signature = Script(f'{s}(').get_signatures()[0]
+    definition = Script(f'{s}(').infer(column=0)[0]
     signature.line == 1
     signature.column == 6
 
@@ -382,18 +383,18 @@ def test_keyword_argument_index(Script, environment):
     assert get(kw_func_simple, column=len('foo(b=')).index == 1
 
     args_func = 'def foo(*kwargs): pass\n'
-    assert get(args_func + 'foo(a').index == 0
-    assert get(args_func + 'foo(a, b').index == 0
+    assert get(f'{args_func}foo(a').index == 0
+    assert get(f'{args_func}foo(a, b').index == 0
 
     kwargs_func = 'def foo(**kwargs): pass\n'
-    assert get(kwargs_func + 'foo(a=2').index == 0
-    assert get(kwargs_func + 'foo(a=2, b=2').index == 0
+    assert get(f'{kwargs_func}foo(a=2').index == 0
+    assert get(f'{kwargs_func}foo(a=2, b=2').index == 0
 
     both = 'def foo(*args, **kwargs): pass\n'
-    assert get(both + 'foo(a=2').index == 1
-    assert get(both + 'foo(a=2, b=2').index == 1
-    assert get(both + 'foo(a=2, b=2)', column=len('foo(b=2, a=2')).index == 1
-    assert get(both + 'foo(a, b, c').index == 0
+    assert get(f'{both}foo(a=2').index == 1
+    assert get(f'{both}foo(a=2, b=2').index == 1
+    assert get(f'{both}foo(a=2, b=2)', column=len('foo(b=2, a=2')).index == 1
+    assert get(f'{both}foo(a, b, c').index == 0
 
 
 code1 = 'def f(u, /, v=3, *, abc, abd, xyz): pass'
@@ -534,9 +535,9 @@ def test_arg_defaults(Script, environment, code):
     locals_ = locals()
 
     def iter_scripts():
-        yield Interpreter(code + '(', namespaces=[locals_])
+        yield Interpreter(f'{code}(', namespaces=[locals_])
         yield Script(src + code + "2(")
-        yield Interpreter(code + '2(', namespaces=[executed_locals])
+        yield Interpreter(f'{code}2(', namespaces=[executed_locals])
 
     for script in iter_scripts():
         signatures = script.get_signatures()
@@ -593,19 +594,19 @@ class X():
 
 def test_class_creation(Script):
 
-    sig, = Script(CLASS_CODE + 'X(').get_signatures()
+    sig, = Script(f'{CLASS_CODE}X(').get_signatures()
     assert sig.index == 0
     assert sig.name == 'X'
     assert [p.name for p in sig.params] == ['foo', 'bar']
 
 
 def test_call_init_on_class(Script):
-    sig, = Script(CLASS_CODE + 'X.__init__(').get_signatures()
+    sig, = Script(f'{CLASS_CODE}X.__init__(').get_signatures()
     assert [p.name for p in sig.params] == ['self', 'foo', 'bar']
 
 
 def test_call_init_on_instance(Script):
-    sig, = Script(CLASS_CODE + 'X().__init__(').get_signatures()
+    sig, = Script(f'{CLASS_CODE}X().__init__(').get_signatures()
     assert [p.name for p in sig.params] == ['foo', 'bar']
 
 
@@ -615,14 +616,14 @@ def test_call_magic_method(Script):
         def __call__(self, baz):
             pass
     ''')
-    sig, = Script(code + 'X()(').get_signatures()
+    sig, = Script(f'{code}X()(').get_signatures()
     assert sig.index == 0
     assert sig.name == 'X'
     assert [p.name for p in sig.params] == ['baz']
 
-    sig, = Script(code + 'X.__call__(').get_signatures()
+    sig, = Script(f'{code}X.__call__(').get_signatures()
     assert [p.name for p in sig.params] == ['self', 'baz']
-    sig, = Script(code + 'X().__call__(').get_signatures()
+    sig, = Script(f'{code}X().__call__(').get_signatures()
     assert [p.name for p in sig.params] == ['baz']
 
 

@@ -74,9 +74,7 @@ def _create_repr_string(literal_string, dict_key):
     prefix, quote = _get_string_prefix_and_quote(literal_string)
     if quote is None:
         return r
-    if quote == r[0]:
-        return prefix + r
-    return prefix + quote + r[1:-1] + quote
+    return prefix + r if quote == r[0] else prefix + quote + r[1:-1] + quote
 
 
 def _get_python_keys(dicts):
@@ -90,9 +88,7 @@ def _get_python_keys(dicts):
 
 def _get_string_prefix_and_quote(string):
     match = re.match(r'(\w*)("""|\'{3}|"|\')', string)
-    if match is None:
-        return None, None
-    return match.group(1), match.group(2)
+    return (None, None) if match is None else (match.group(1), match.group(2))
 
 
 def _matches_quote_at_position(code_lines, quote, position):

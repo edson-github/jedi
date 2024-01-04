@@ -24,8 +24,7 @@ class _ExactImporter(MetaPathFinder):
     def find_spec(self, fullname, path=None, target=None):
         if path is None and fullname in self._path_dct:
             p = self._path_dct[fullname]
-            spec = PathFinder.find_spec(fullname, path=[p], target=target)
-            return spec
+            return PathFinder.find_spec(fullname, path=[p], target=target)
         return None
 
 

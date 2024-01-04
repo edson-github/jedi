@@ -28,7 +28,7 @@ from jedi.plugins import plugin_manager
 
 class ParamNameWithEquals(ParamNameWrapper):
     def get_public_name(self):
-        return self.string_name + '='
+        return f'{self.string_name}='
 
 
 def _get_signature_param_names(signatures, positional_count, used_kwargs):
@@ -218,7 +218,7 @@ class Completion:
             return cached_name, self._complete_global_scope()
 
         allowed_transitions = \
-            list(stack._allowed_transition_names_and_token_types())
+                list(stack._allowed_transition_names_and_token_types())
 
         if 'if' in allowed_transitions:
             leaf = self._module_node.get_leaf_for_position(self._position, include_prefixes=True)
@@ -242,7 +242,7 @@ class Completion:
                     if type_ == 'error_node':
                         first = stmt.children[0]
                         if isinstance(first, Leaf):
-                            type_ = first.value + '_stmt'
+                            type_ = f'{first.value}_stmt'
                     # Compare indents
                     if stmt.start_pos[1] == indent:
                         if type_ == 'if_stmt':
@@ -295,9 +295,8 @@ class Completion:
                 # 3. Decorators are very primitive and have an optional `(` with
                 #    optional arglist in them.
                 if nodes[-1] in ['(', ','] \
-                        and nonterminals[-1] in ('trailer', 'arglist', 'decorator'):
-                    signatures = self._signatures_callback(*self._position)
-                    if signatures:
+                            and nonterminals[-1] in ('trailer', 'arglist', 'decorator'):
+                    if signatures := self._signatures_callback(*self._position):
                         call_details = signatures[0]._call_details
                         used_kwargs = list(call_details.iter_used_keyword_arguments())
                         positional_count = call_details.count_positional_arguments()
@@ -460,9 +459,7 @@ class Completion:
             relevant_code_lines = ['\n' if c is None else c for c in relevant_code_lines]
             return self._complete_code_lines(relevant_code_lines)
         match = re.search(r'`([^`\s]+)', code_lines[-1])
-        if match:
-            return self._complete_code_lines([match.group(1)])
-        return []
+        return self._complete_code_lines([match.group(1)]) if match else []
 
     def _complete_code_lines(self, code_lines):
         module_node = self._inference_state.grammar.parse(''.join(code_lines))
@@ -522,8 +519,11 @@ def _extract_string_while_in_string(leaf, position):
             prefix_leaf = None
             if not leaf.prefix:
                 prefix_leaf = leaf.get_previous_leaf()
-                if prefix_leaf is None or prefix_leaf.type != 'name' \
-                        or not all(c in 'rubf' for c in prefix_leaf.value.lower()):
+                if (
+                    prefix_leaf is None
+                    or prefix_leaf.type != 'name'
+                    or any(c not in 'rubf' for c in prefix_leaf.value.lower())
+                ):
                     prefix_leaf = None
 
             return (
@@ -613,7 +613,7 @@ def _complete_getattr(user_context, instance):
             # Make sure it's a param: foo in __getattr__(self, foo)
             name_node = arglist.children[2]
             name_list = context.goto(name_node, name_node.start_pos)
-            if not any(n.api_type == 'param' for n in name_list):
+            if all(n.api_type != 'param' for n in name_list):
                 continue
 
             # Now that we know that these are most probably completion
@@ -630,14 +630,16 @@ def search_in_module(inference_state, module_context, names, wanted_names,
     for s in wanted_names[:-1]:
         new_names = []
         for n in names:
-            if s == n.string_name:
-                if n.tree_name is not None and n.api_type in ('module', 'namespace') \
-                        and ignore_imports:
-                    continue
-                new_names += complete_trailer(
-                    module_context,
-                    n.infer()
-                )
+            if (
+                n.tree_name is None
+                or n.api_type not in ('module', 'namespace')
+                or not ignore_imports
+            ):
+                if s == n.string_name:
+                    new_names += complete_trailer(
+                        module_context,
+                        n.infer()
+                    )
         debug.dbg('dot lookup on search %s from %s', new_names, names[:10])
         names = new_names
 
@@ -646,10 +648,7 @@ def search_in_module(inference_state, module_context, names, wanted_names,
         string = n.string_name.lower()
         if complete and helpers.match(string, last_name, fuzzy=fuzzy) \
                 or not complete and string == last_name:
-            if isinstance(n, SubModuleName):
-                names = [v.name for v in n.infer()]
-            else:
-                names = [n]
+            names = [v.name for v in n.infer()] if isinstance(n, SubModuleName) else [n]
             if convert:
                 names = convert_names(names)
             for n2 in names:

@@ -91,11 +91,7 @@ class MixedObject(ValueWrapper):
         return MixedContext(self)
 
     def __repr__(self):
-        return '<%s: %s; %s>' % (
-            type(self).__name__,
-            self.access_handle.get_repr(),
-            self._wrapped_value,
-        )
+        return f'<{type(self).__name__}: {self.access_handle.get_repr()}; {self._wrapped_value}>'
 
 
 class MixedContext(CompiledContext, TreeContextMixin):
@@ -119,10 +115,7 @@ class MixedName(NameWrapper):
     @property
     def start_pos(self):
         values = list(self.infer())
-        if not values:
-            # This means a start_pos that doesn't exist (compiled objects).
-            return 0, 0
-        return values[0].name.start_pos
+        return (0, 0) if not values else values[0].name.start_pos
 
     @memoize_method
     def infer(self):
@@ -243,10 +236,9 @@ def _find_syntax_node_name(inference_state, python_object):
     except AttributeError:
         pass
     else:
-        line_names = [name for name in names if name.start_pos[0] == line_nr]
-        # There's a chance that the object is not available anymore, because
-        # the code has changed in the background.
-        if line_names:
+        if line_names := [
+            name for name in names if name.start_pos[0] == line_nr
+        ]:
             names = line_names
 
     code_lines = get_cached_code_lines(inference_state.grammar, path)
