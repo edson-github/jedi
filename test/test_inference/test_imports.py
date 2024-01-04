@@ -410,7 +410,7 @@ def test_relative_imports_without_path(Script):
 def test_relative_import_out_of_file_system(Script):
     code = "from " + '.' * 100
     assert not Script(code).complete()
-    script = Script(code + ' ')
+    script = Script(f'{code} ')
     import_, = script.complete()
     assert import_.name == 'import'
 
@@ -445,7 +445,7 @@ def test_import_name_calculation(Script):
 
 @pytest.mark.parametrize('name', ('builtins', 'typing'))
 def test_pre_defined_imports_module(Script, environment, name):
-    path = os.path.join(root_dir, name + '.py')
+    path = os.path.join(root_dir, f'{name}.py')
     module = Script('', path=path)._get_module_context()
     assert module.string_names == (name,)
 
@@ -455,12 +455,14 @@ def test_pre_defined_imports_module(Script, environment, name):
 
 @pytest.mark.parametrize('name', ('builtins', 'typing'))
 def test_import_needed_modules_by_jedi(Script, environment, tmpdir, name):
-    module_path = tmpdir.join(name + '.py')
+    module_path = tmpdir.join(f'{name}.py')
     module_path.write('int = ...')
     script = Script(
-        'import ' + name,
+        f'import {name}',
         path=tmpdir.join('something.py').strpath,
-        project=Project('.', sys_path=[tmpdir.strpath] + environment.get_sys_path()),
+        project=Project(
+            '.', sys_path=[tmpdir.strpath] + environment.get_sys_path()
+        ),
     )
     module, = script.infer()
     assert str(module._inference_state.builtins_module.py__file__()) != module_path

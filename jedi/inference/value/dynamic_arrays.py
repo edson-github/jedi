@@ -51,7 +51,7 @@ def _internal_check_array_additions(context, sequence):
     """
     from jedi.inference import arguments
 
-    debug.dbg('Dynamic array search for %s' % sequence, color='MAGENTA')
+    debug.dbg(f'Dynamic array search for {sequence}', color='MAGENTA')
     module_context = context.get_root_context()
     if not settings.dynamic_array_additions or module_context.is_compiled():
         debug.dbg('Dynamic array search aborted.', color='MAGENTA')
@@ -159,8 +159,7 @@ class _DynamicArrayAdditions(HelperValueMixin):
 
         from jedi.inference.arguments import TreeArguments
         if isinstance(arguments, TreeArguments):
-            additions = _internal_check_array_additions(arguments.context, self._instance)
-            yield from additions
+            yield from _internal_check_array_additions(arguments.context, self._instance)
 
     def iterate(self, contextualized_node=None, is_async=False):
         return self.py__iter__(contextualized_node)

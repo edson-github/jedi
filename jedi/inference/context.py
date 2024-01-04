@@ -79,7 +79,7 @@ class AbstractContext:
         if not names and not values and analysis_errors:
             if isinstance(name_or_str, Name):
                 from jedi.inference import analysis
-                message = ("NameError: name '%s' is not defined." % string_name)
+                message = f"NameError: name '{string_name}' is not defined."
                 analysis.add(name_context, 'name-error', name_or_str, message)
 
         debug.dbg('context.names_to_types: %s -> %s', names, values)
@@ -109,9 +109,7 @@ class AbstractContext:
 
     def get_root_context(self):
         parent_context = self.parent_context
-        if parent_context is None:
-            return self
-        return parent_context.get_root_context()
+        return self if parent_context is None else parent_context.get_root_context()
 
     def is_module(self):
         return False
@@ -215,7 +213,7 @@ class ValueContext(AbstractContext):
         return self._value
 
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, self._value)
+        return f'{self.__class__.__name__}({self._value})'
 
 
 class TreeContextMixin:
@@ -247,7 +245,7 @@ class TreeContextMixin:
         elif node.type == 'classdef':
             return value.ClassValue(self.inference_state, parent_context, node)
         else:
-            raise NotImplementedError("Probably shouldn't happen: %s" % node)
+            raise NotImplementedError(f"Probably shouldn't happen: {node}")
 
     def create_context(self, node):
         def from_scope_node(scope_node, is_nested=True):
@@ -261,7 +259,7 @@ class TreeContextMixin:
                 if node.start_pos >= scope_node.children[-1].start_pos:
                     return parent_context
                 return CompForContext(parent_context, scope_node)
-            raise Exception("There's a scope that was not managed: %s" % scope_node)
+            raise Exception(f"There's a scope that was not managed: {scope_node}")
 
         def parent_scope(node):
             while True:
@@ -283,7 +281,7 @@ class TreeContextMixin:
             colon = scope_node.children[scope_node.children.index(':')]
             if node.start_pos < colon.start_pos:
                 parent = node.parent
-                if not (parent.type == 'param' and parent.name == node):
+                if parent.type != 'param' or parent.name != node:
                     scope_node = parent_scope(scope_node)
         return from_scope_node(scope_node, is_nested=True)
 
@@ -389,7 +387,7 @@ class CompForContext(TreeContextMixin, AbstractContext):
         return '<comprehension context>'
 
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, self.tree_node)
+        return f'{self.__class__.__name__}({self.tree_node})'
 
 
 class CompiledContext(ValueContext):

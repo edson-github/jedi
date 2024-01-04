@@ -38,7 +38,7 @@ def test_function(Script, environment):
     value = def_._name._value
     assert isinstance(value, FunctionValue), value
 
-    def_, = Script(code + '()').infer()
+    def_, = Script(f'{code}()').infer()
     value = def_._name._value
     assert isinstance(value, TreeInstance)
 
@@ -80,7 +80,7 @@ def test_method(Script):
     assert isinstance(value, BoundMethod), value
     assert isinstance(value._wrapped_value, MethodValue), value
 
-    def_, = Script(code + '()').infer()
+    def_, = Script(f'{code}()').infer()
     value = def_._name._value
     assert isinstance(value, TreeInstance)
     assert value.class_value.py__name__() == 'str'
@@ -88,7 +88,7 @@ def test_method(Script):
 
 def test_sys_exc_info(Script):
     code = 'import sys; sys.exc_info()'
-    none, def_ = Script(code + '[1]').infer()
+    none, def_ = Script(f'{code}[1]').infer()
     # It's an optional.
     assert def_.name == 'BaseException'
     assert def_.module_path == typeshed.TYPESHED_PATH.joinpath(
@@ -98,7 +98,7 @@ def test_sys_exc_info(Script):
     assert none.name == 'NoneType'
     assert none.module_path is None
 
-    none, def_ = Script(code + '[0]').infer()
+    none, def_ = Script(f'{code}[0]').infer()
     assert def_.name == 'BaseException'
     assert def_.type == 'class'
 
@@ -188,10 +188,7 @@ def test_goto_stubs_on_itself(Script, code, type_):
     the stub of it.
     """
     s = Script(code)
-    if type_ == 'infer':
-        def_, = s.infer()
-    else:
-        def_, = s.goto(follow_imports=True)
+    def_, = s.infer() if type_ == 'infer' else s.goto(follow_imports=True)
     stub, = def_.goto(only_stubs=True)
 
     script_on_source = Script(path=def_.module_path)

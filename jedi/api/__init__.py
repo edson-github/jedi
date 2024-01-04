@@ -520,7 +520,7 @@ class Script:
                 elif isinstance(node, tree.Import):
                     import_names = set(node.get_defined_names())
                     if node.is_nested():
-                        import_names |= set(path[-1] for path in node.get_paths())
+                        import_names |= {path[-1] for path in node.get_paths()}
                     for n in import_names:
                         imports.infer_import(context, n)
                 elif node.type == 'expr_stmt':
@@ -731,9 +731,8 @@ class Interpreter(Script):
         environment = kwds.get('environment', None)
         if environment is None:
             environment = InterpreterEnvironment()
-        else:
-            if not isinstance(environment, InterpreterEnvironment):
-                raise TypeError("The environment needs to be an InterpreterEnvironment subclass.")
+        elif not isinstance(environment, InterpreterEnvironment):
+            raise TypeError("The environment needs to be an InterpreterEnvironment subclass.")
 
         if project is None:
             project = Project(Path.cwd())
@@ -742,7 +741,7 @@ class Interpreter(Script):
 
         self.namespaces = namespaces
         self._inference_state.allow_unsafe_executions = \
-            settings.allow_unsafe_interpreter_executions
+                settings.allow_unsafe_interpreter_executions
         # Dynamic params search is important when we work on functions that are
         # called by other pieces of code. However for interpreter completions
         # this is not important at all, because the current code is always new
@@ -779,7 +778,7 @@ def preload_module(*modules):
     :param modules: different module names, list of string.
     """
     for m in modules:
-        s = "import %s as x; x." % m
+        s = f"import {m} as x; x."
         Script(s).complete(1, len(s))
 
 

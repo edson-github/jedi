@@ -21,8 +21,10 @@ def _start_linter():
 
             paths = []
             for root, dirnames, filenames in os.walk(path):
-                for filename in fnmatch.filter(filenames, '*.py'):
-                    paths.append(os.path.join(root, filename))
+                paths.extend(
+                    os.path.join(root, filename)
+                    for filename in fnmatch.filter(filenames, '*.py')
+                )
         else:
             paths = [path]
 
@@ -31,13 +33,12 @@ def _start_linter():
                 for error in jedi.Script(path=p)._analysis():
                     print(error)
         except Exception:
-            if '--pdb' in sys.argv:
-                import traceback
-                traceback.print_exc()
-                import pdb
-                pdb.post_mortem()
-            else:
+            if '--pdb' not in sys.argv:
                 raise
+            import traceback
+            traceback.print_exc()
+            import pdb
+            pdb.post_mortem()
 
 
 def _complete():
@@ -69,4 +70,4 @@ elif len(sys.argv) > 1 and sys.argv[1] == '_linter':
 elif len(sys.argv) > 1 and sys.argv[1] == '_complete':
     _complete()
 else:
-    print('Command not implemented: %s' % sys.argv[1])
+    print(f'Command not implemented: {sys.argv[1]}')

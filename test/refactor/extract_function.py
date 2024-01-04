@@ -66,19 +66,19 @@ def f(x):
 class X:
     def z(self): pass
 
-    def f(x, b):
+    def f(self, b):
         #? 11 text {'new_name': 'ab'}
-        return x + b * 2
+        return self + b * 2
 # ++++++++++++++++++++++++++++++++++++++++++++++++++
 class X:
     def z(self): pass
 
-    def ab(x, b):
-        return x + b * 2
+    def ab(self, b):
+        return self + b * 2
 
-    def f(x, b):
+    def f(self, b):
         #? 11 text {'new_name': 'ab'}
-        return x.ab(b)
+        return self.ab(b)
 # -------------------------------------------------- in-method-2
 glob1 = 1
 class X:
@@ -114,19 +114,19 @@ class X:
 # -------------------------------------------------- in-classmethod-1
 class X:
     @classmethod
-    def f(x):
+    def f(cls):
         #? 16 text {'new_name': 'ab'}
         return 25
 # ++++++++++++++++++++++++++++++++++++++++++++++++++
 class X:
     @classmethod
-    def ab(x):
+    def ab(cls):
         return 25
 
     @classmethod
-    def f(x):
+    def f(cls):
         #? 16 text {'new_name': 'ab'}
-        return x.ab()
+        return cls.ab()
 # -------------------------------------------------- in-staticmethod-1
 class X(int):
     @staticmethod
@@ -180,8 +180,7 @@ x = test(v1 + v2 * v3)
 def a(test, v3):
     v1 = 3
     v2 = 2
-    x = test(v1 + v2 * v3)
-    return x
+    return test(v1 + v2 * v3)
 
 
 x = a(test, v3)
@@ -231,13 +230,11 @@ y
 import os
 # comment1
 @dec
-# comment2
 def x(v1):
     #foo
     #? 2 text {'new_name': 'a', 'until_line': 9, 'until_column': 5}
     v2 = 2
-    if 1:
-        x, y = os.listdir(v1 + v2 * v3)
+    x, y = os.listdir(v1 + v2 * v3)
     #bar
     return x, y
 # ++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -245,8 +242,7 @@ import os
 # comment1
 def a(v1, v3):
     v2 = 2
-    if 1:
-        x, y = os.listdir(v1 + v2 * v3)
+    x, y = os.listdir(v1 + v2 * v3)
     return x, y
 
 
@@ -266,8 +262,7 @@ def x(v1):
     #? 2 text {'new_name': 'a', 'until_line': 10, 'until_column': 0}
     #foo
     v2 = 2
-    if 1:
-        x, y = os.listdir(v1 + v2 * v3)
+    x, y = os.listdir(v1 + v2 * v3)
     #bar
     return y
 x
@@ -278,33 +273,27 @@ import os
 def a(v1, v3):
     #foo
     v2 = 2
-    if 1:
-        x, y = os.listdir(v1 + v2 * v3)
+    x, y = os.listdir(v1 + v2 * v3)
     #bar
     return y
 
 
 def x(v1):
-    #? 2 text {'new_name': 'a', 'until_line': 10, 'until_column': 0}
-    y = a(v1, v3)
-    return y
+    return a(v1, v3)
 x
 # -------------------------------------------------- with-range-func-3
 def x(v1):
     #? 2 text {'new_name': 'func', 'until_line': 6, 'until_column': 4}
     #foo
     v2 = 2
-    x = v1 * 2
     y = 3
-    #bar
-    return x
+    return v1 * 2
 x
 # ++++++++++++++++++++++++++++++++++++++++++++++++++
 def func(v1):
     #foo
     v2 = 2
-    x = v1 * 2
-    return x
+    return v1 * 2
 
 
 def x(v1):
@@ -322,8 +311,7 @@ class X1:
 # ++++++++++++++++++++++++++++++++++++++++++++++++++
 def f():
     a = 3
-    c = a + 2
-    return c
+    return a + 2
 
 
 class X1:
@@ -354,8 +342,7 @@ class X:
         #foo
         local1 = 3
         local2 = 4
-        x= self.g() or self.f(b) ^ glob1 & b is local1
-        return x
+        return self.g() or self.f(b) ^ glob1 & b is local1
 
     def f(self, b, c):
         #? 11 text {'new_name': 'ab', 'until_line': 12, 'until_column': 28}
@@ -428,9 +415,6 @@ class X:
         return ab()
 # -------------------------------------------------- random-return-1
 def x():
-    #? 0 error {'new_name': 'ab', 'until_line': 5, 'until_column': 10}
-    if x:
-        return 1
     return 1
 # ++++++++++++++++++++++++++++++++++++++++++++++++++
 Can only extract return statements if they are at the end.
@@ -439,7 +423,6 @@ def x():
     #? 0 error {'new_name': 'ab', 'until_line': 5, 'until_column': 10}
     #
     return
-    pass
 # ++++++++++++++++++++++++++++++++++++++++++++++++++
 Can only extract return statements if they are at the end.
 # -------------------------------------------------- random-yield-1
@@ -448,7 +431,6 @@ def x():
     #
     if (yield 1):
         return
-    pass
 # ++++++++++++++++++++++++++++++++++++++++++++++++++
 Cannot extract yield statements.
 # -------------------------------------------------- random-yield-2

@@ -148,18 +148,19 @@ class InferenceState:
         if def_ is not None:
             type_ = def_.type
             is_classdef = type_ == 'classdef'
-            if is_classdef or type_ == 'funcdef':
-                if is_classdef:
-                    c = ClassValue(self, context, name.parent)
-                else:
-                    c = FunctionValue.from_context(context, name.parent)
+            if is_classdef:
+                c = ClassValue(self, context, name.parent)
+                return ValueSet([c])
+
+            elif type_ == 'funcdef':
+                c = FunctionValue.from_context(context, name.parent)
                 return ValueSet([c])
 
             if type_ == 'expr_stmt':
                 is_simple_name = name.parent.type not in ('power', 'trailer')
                 if is_simple_name:
                     return infer_expr_stmt(context, def_, name)
-            if type_ == 'for_stmt':
+            elif type_ == 'for_stmt':
                 container_types = context.infer_node(def_.children[3])
                 cn = ContextualizedNode(context, def_.children[3])
                 for_types = iterate_values(container_types, cn)
@@ -167,12 +168,12 @@ class InferenceState:
                 return check_tuple_assignments(n, for_types)
             if type_ in ('import_from', 'import_name'):
                 return imports.infer_import(context, name)
-            if type_ == 'with_stmt':
-                return tree_name_to_values(self, context, name)
+            if type_ == 'namedexpr_test':
+                return context.infer_node(def_)
             elif type_ == 'param':
                 return context.py__getattribute__(name.value, position=name.end_pos)
-            elif type_ == 'namedexpr_test':
-                return context.infer_node(def_)
+            elif type_ == 'with_stmt':
+                return tree_name_to_values(self, context, name)
         else:
             result = follow_error_node_imports_if_possible(context, name)
             if result is not None:

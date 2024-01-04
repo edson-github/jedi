@@ -32,10 +32,9 @@ def deep_ast_copy(obj):
     for child in obj.children:
         if isinstance(child, tree.Leaf):
             new_child = copy.copy(child)
-            new_child.parent = new_obj
         else:
             new_child = deep_ast_copy(child)
-            new_child.parent = new_obj
+        new_child.parent = new_obj
         new_children.append(new_child)
     new_obj.children = new_children
 
@@ -80,11 +79,7 @@ def infer_call_of_leaf(context, leaf, cut_own_trailer=False):
 
     power = trailer.parent
     index = power.children.index(trailer)
-    if cut_own_trailer:
-        cut = index
-    else:
-        cut = index + 1
-
+    cut = index if cut_own_trailer else index + 1
     if power.type == 'error_node':
         start = index
         while True:
@@ -112,10 +107,7 @@ def get_names_of_node(node):
     try:
         children = node.children
     except AttributeError:
-        if node.type == 'name':
-            return [node]
-        else:
-            return []
+        return [node] if node.type == 'name' else []
     else:
         return list(chain.from_iterable(get_names_of_node(c) for c in children))
 

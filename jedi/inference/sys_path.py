@@ -76,16 +76,20 @@ def _paths_from_list_modifications(module_context, trailer1, trailer2):
     """ extract the path from either "sys.path.append" or "sys.path.insert" """
     # Guarantee that both are trailers, the first one a name and the second one
     # a function execution with at least one param.
-    if not (trailer1.type == 'trailer' and trailer1.children[0] == '.'
-            and trailer2.type == 'trailer' and trailer2.children[0] == '('
-            and len(trailer2.children) == 3):
+    if (
+        trailer1.type != 'trailer'
+        or trailer1.children[0] != '.'
+        or trailer2.type != 'trailer'
+        or trailer2.children[0] != '('
+        or len(trailer2.children) != 3
+    ):
         return
 
     name = trailer1.children[1].value
     if name not in ['insert', 'append']:
         return
     arg = trailer2.children[1]
-    if name == 'insert' and len(arg.children) in (3, 4):  # Possible trailing comma.
+    if name == 'insert' and len(arg.children) in {3, 4}:  # Possible trailing comma.
         arg = arg.children[2]
 
     for value in module_context.create_context(arg).infer_node(arg):

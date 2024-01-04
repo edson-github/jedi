@@ -63,7 +63,7 @@ def get_sync_comp_fors(comp_for):
             yield last.children[1]  # Ignore the async.
         elif last.type == 'sync_comp_for':
             yield last
-        elif not last.type == 'comp_if':
+        elif last.type != 'comp_if':
             break
         last = last.children[-1]
 
@@ -96,13 +96,7 @@ def get_flow_branch_keyword(flow_node, node):
 def clean_scope_docstring(scope_node):
     """ Returns a cleaned version of the docstring token. """
     node = scope_node.get_doc_node()
-    if node is not None:
-        # TODO We have to check next leaves until there are no new
-        # leaves anymore that might be part of the docstring. A
-        # docstring can also look like this: ``'foo' 'bar'
-        # Returns a literal cleaned version of the ``Token``.
-        return cleandoc(safe_literal_eval(node.value))
-    return ''
+    return cleandoc(safe_literal_eval(node.value)) if node is not None else ''
 
 
 def find_statement_documentation(tree_node):
@@ -141,10 +135,7 @@ def get_signature(funcdef, width=72, call_string=None,
     """
     # Lambdas have no name.
     if call_string is None:
-        if funcdef.type == 'lambdef':
-            call_string = '<lambda>'
-        else:
-            call_string = funcdef.name.value
+        call_string = '<lambda>' if funcdef.type == 'lambdef' else funcdef.name.value
     params = funcdef.get_params()
     if omit_first_param:
         params = params[1:]
@@ -152,7 +143,7 @@ def get_signature(funcdef, width=72, call_string=None,
     # TODO this is pretty bad, we should probably just normalize.
     p = re.sub(r'\s+', ' ', p)
     if funcdef.annotation and not omit_return_annotation:
-        rtype = " ->" + funcdef.annotation.get_code()
+        rtype = f" ->{funcdef.annotation.get_code()}"
     else:
         rtype = ""
     code = call_string + p + rtype
@@ -188,11 +179,7 @@ def get_following_comment_same_line(node):
             whitespace = node.children[4].get_first_leaf().get_next_leaf().prefix
         else:
             whitespace = node.get_last_leaf().get_next_leaf().prefix
-    except AttributeError:
-        return None
-    except ValueError:
-        # TODO in some particular cases, the tree doesn't seem to be linked
-        # correctly
+    except (AttributeError, ValueError):
         return None
     if "#" not in whitespace:
         return None
@@ -248,9 +235,10 @@ def get_parent_scope(node, include_flows=False):
                 if scope.children[index].start_pos >= node.start_pos:
                     if node.parent.type == 'param' and node.parent.name == node:
                         pass
-                    elif node.parent.type == 'tfpdef' and node.parent.children[0] == node:
-                        pass
-                    else:
+                    elif (
+                        node.parent.type != 'tfpdef'
+                        or node.parent.children[0] != node
+                    ):
                         scope = scope.parent
                         continue
             return scope

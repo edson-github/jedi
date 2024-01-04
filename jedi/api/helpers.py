@@ -30,9 +30,7 @@ def _fuzzy_match(string, like_name):
     if len(like_name) <= 1:
         return like_name in string
     pos = string.find(like_name[0])
-    if pos >= 0:
-        return _fuzzy_match(string[pos + 1:], like_name[1:])
-    return False
+    return _fuzzy_match(string[pos + 1:], like_name[1:]) if pos >= 0 else False
 
 
 def match(string, like_name, fuzzy=False):
@@ -95,7 +93,7 @@ def _get_code_for_stack(code_lines, leaf, position):
         if leaf is None:
             return ''
 
-    if leaf.type == 'error_leaf' or leaf.type == 'string':
+    if leaf.type in ['error_leaf', 'string']:
         if leaf.start_pos[0] < position[0]:
             # On a different line, we just begin anew.
             return ''
@@ -149,7 +147,7 @@ def get_stack_at_position(grammar, code_lines, leaf, pos):
     # completion.
     # Use Z as a prefix because it's not part of a number suffix.
     safeword = 'ZZZ_USER_WANTS_TO_COMPLETE_HERE_WITH_JEDI'
-    code = code + ' ' + safeword
+    code = f'{code} {safeword}'
 
     p = Parser(grammar._pgen_grammar, error_recovery=True)
     try:
@@ -227,18 +225,12 @@ class CallDetails:
         star_count = -1
         args = self._list_arguments()
         if not args:
-            if param_names:
-                return 0
-            else:
-                return None
-
+            return 0 if param_names else None
         is_kwarg = False
         for i, (star_count, key_start, had_equal) in enumerate(args):
             is_kwarg |= had_equal | (star_count == 2)
-            if star_count:
-                pass  # For now do nothing, we don't know what's in there here.
-            else:
-                if i + 1 != len(args):  # Not last
+            if i + 1 != len(args):
+                if not star_count:
                     if had_equal:
                         used_names.add(key_start)
                     else:
@@ -254,20 +246,20 @@ class CallDetails:
                     if i == positional_count:
                         return i
 
-            if key_start is not None and not star_count == 1 or star_count == 2:
+            if key_start is not None and star_count != 1 or star_count == 2:
                 if param_name.string_name not in used_names \
-                        and (kind == Parameter.KEYWORD_ONLY
+                            and (kind == Parameter.KEYWORD_ONLY
                              or kind == Parameter.POSITIONAL_OR_KEYWORD
                              and positional_count <= i):
                     if star_count:
                         return i
-                    if had_equal:
-                        if param_name.string_name == key_start:
-                            return i
-                    else:
-                        if param_name.string_name.startswith(key_start):
-                            return i
-
+                    if (
+                        had_equal
+                        and param_name.string_name == key_start
+                        or not had_equal
+                        and param_name.string_name.startswith(key_start)
+                    ):
+                        return i
                 if kind == Parameter.VAR_KEYWORD:
                     return i
         return None
@@ -417,7 +409,7 @@ def get_signature_details(module, position):
                     if result is not None:
                         return result
 
-                    additional_children[0:0] = n.children
+                    additional_children[:0] = n.children
                     continue
                 additional_children.insert(0, n)
 
@@ -428,7 +420,7 @@ def get_signature_details(module, position):
             # interpreted wrong. There are two cases:
             # 1. Cursor before paren -> The current signature is good
             # 2. Cursor after paren -> We need to skip the current signature
-            if not (leaf is node.children[-1] and position >= leaf.end_pos):
+            if leaf is not node.children[-1] or position < leaf.end_pos:
                 leaf = node.get_previous_leaf()
                 if leaf is None:
                     return None

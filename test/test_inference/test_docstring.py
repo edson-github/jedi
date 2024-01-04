@@ -222,7 +222,7 @@ def test_numpydoc_parameters_set_single_value():
         x.''')
     names = [c.name for c in jedi.Script(s).complete()]
     # just don't crash
-    assert names == []
+    assert not names
 
 
 @pytest.mark.skipif(numpydoc_unavailable,
@@ -537,5 +537,5 @@ def test_property(name, docstring, goto_or_complete):
             def prop4(self) -> None:
                 """Django like property"""
     ''')
-    n, = goto_or_complete(code + 'Test().' + name)
+    n, = goto_or_complete(f'{code}Test().{name}')
     assert n.docstring() == docstring

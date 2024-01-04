@@ -25,7 +25,7 @@ def to_tuple(func):
 
 def unite(iterable):
     """Turns a two dimensional array into a one dimensional."""
-    return set(typ for types in iterable for typ in types)
+    return {typ for types in iterable for typ in types}
 
 
 class UncaughtAttributeError(Exception):
@@ -83,8 +83,5 @@ class PushBackIterator:
         return self
 
     def __next__(self):
-        if self.pushes:
-            self.current = self.pushes.pop()
-        else:
-            self.current = next(self.iterator)
+        self.current = self.pushes.pop() if self.pushes else next(self.iterator)
         return self.current

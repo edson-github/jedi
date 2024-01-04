@@ -7,7 +7,7 @@ x()
 def array(first_param):
     #? ['first_param']
     first_param
-    return list()
+    return []
 
 #? []
 array.first_param
@@ -31,15 +31,13 @@ def inputs(param):
 inputs(list)
 
 def variable_middle():
-    var = 3
-    return var
+    return 3
 
 #? int()
 variable_middle()
 
 def variable_rename(param):
-    var = param
-    return var
+    return param
 
 #? int()
 variable_rename(1)
@@ -89,10 +87,7 @@ variable_rename(1)().
 # recursions (should ignore)
 # -----------------
 def recursion(a, b):
-    if a:
-        return b
-    else:
-        return recursion(a+".", b+1)
+    return b if a else recursion(f"{a}.", b+1)
 
 # Does not also return int anymore, because we now support operators in simple cases.
 #? float()
@@ -105,10 +100,7 @@ def recursion2(a):
     if random.choice([0, 1]):
         return other(a)
     else:
-        if random.choice([0, 1]):
-            return recursion2("")
-        else:
-            return a
+        return recursion2("") if random.choice([0, 1]) else a
 
 #? int() str()
 recursion2(1)
@@ -327,7 +319,7 @@ exe2['b']
 #? int() float()
 exe2['c']
 
-exe3 = kwargs_func(**{k: v for k, v in [(a, 3), ('b', 4.0)]})
+exe3 = kwargs_func(**dict([(a, 3), ('b', 4.0)]))
 
 # Should resolve to the same as 2 but jedi is not smart enough yet
 # Here to make sure it doesn't result in crash though

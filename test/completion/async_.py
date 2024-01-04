@@ -80,7 +80,7 @@ class C:
     async def async_for_classmethod(cls) -> "C":
         return
 
-    async def async_for_method(cls) -> int:
+    async def async_for_method(self) -> int:
         return
 
 

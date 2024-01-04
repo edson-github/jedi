@@ -25,9 +25,8 @@ ass
 assert isinstance(ass, str)
 assert not isinstance(ass, int)
 
-if 2:
-    #? str()
-    ass
+#? str()
+ass
 
 # -----------------
 # invalid arguments
@@ -51,10 +50,7 @@ def fooooo(obj):
 
 
 def fooooo2(obj):
-    if isinstance(obj, datetime.date):
-        return obj
-    else:
-        return 1
+    return obj if isinstance(obj, datetime.date) else 1
 
 a
 # In earlier versions of Jedi, this returned both datetime and int, but now
@@ -80,10 +76,7 @@ def isinstance_func(arr):
 
 class Test():
     def __init__(self, testing):
-        if isinstance(testing, str):
-            self.testing = testing
-        else:
-            self.testing = 10
+        self.testing = testing if isinstance(testing, str) else 10
 
     def boo(self):
         if isinstance(self.testing, str):

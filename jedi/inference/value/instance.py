@@ -125,8 +125,7 @@ class AbstractInstanceValue(Value):
         # looking up `__call__`. This is something that has to do with Python's
         # internal slot system (note: not __slots__, but C slots).
         for filter in self.get_filters(include_self_names=False):
-            names = filter.get(name)
-            if names:
+            if names := filter.get(name):
                 return names
         return []
 
@@ -161,7 +160,7 @@ class AbstractInstanceValue(Value):
         return iterate()
 
     def __repr__(self):
-        return "<%s of %s>" % (self.__class__.__name__, self.class_value)
+        return f"<{self.__class__.__name__} of {self.class_value}>"
 
 
 class CompiledInstance(AbstractInstanceValue):
@@ -266,8 +265,7 @@ class _BaseTreeInstance(AbstractInstanceValue):
 
     def py__next__(self, contextualized_node=None):
         name = u'__next__'
-        next_slot_names = self.get_function_slot_names(name)
-        if next_slot_names:
+        if next_slot_names := self.get_function_slot_names(name):
             yield LazyKnownValues(
                 self.execute_function_slots(next_slot_names)
             )
@@ -275,12 +273,11 @@ class _BaseTreeInstance(AbstractInstanceValue):
             debug.warning('Instance has no __next__ function in %s.', self)
 
     def py__call__(self, arguments):
-        names = self.get_function_slot_names('__call__')
-        if not names:
+        if names := self.get_function_slot_names('__call__'):
+            return ValueSet.from_sets(name.infer().execute(arguments) for name in names)
+        else:
             # Means the Instance is not callable.
             return super().py__call__(arguments)
-
-        return ValueSet.from_sets(name.infer().execute(arguments) for name in names)
 
     def py__get__(self, instance, class_value):
         """
@@ -293,8 +290,7 @@ class _BaseTreeInstance(AbstractInstanceValue):
             if result is not NotImplemented:
                 return result
 
-        names = self.get_function_slot_names('__get__')
-        if names:
+        if names := self.get_function_slot_names('__get__'):
             if instance is None:
                 instance = compiled.builtin_from_name(self.inference_state, 'None')
             return self.execute_function_slots(names, instance, class_value)
@@ -321,7 +317,7 @@ class TreeInstance(_BaseTreeInstance):
     @inference_state_method_cache(default=None)
     def _get_annotated_class_object(self):
         from jedi.inference.gradual.annotation import py__annotations__, \
-            infer_type_vars_for_execution
+                infer_type_vars_for_execution
 
         args = InstanceArguments(self, self._arguments)
         for signature in self.class_value.py__getattribute__('__init__').get_signatures():
@@ -329,14 +325,15 @@ class TreeInstance(_BaseTreeInstance):
             # control the typeshed code.
             funcdef = signature.value.tree_node
             if funcdef is None or funcdef.type != 'funcdef' \
-                    or not signature.matches_signature(args):
+                        or not signature.matches_signature(args):
                 # First check if the signature even matches, if not we don't
                 # need to infer anything.
                 continue
             bound_method = BoundMethod(self, self.class_value.as_context(), signature.value)
             all_annotations = py__annotations__(funcdef)
-            type_var_dict = infer_type_vars_for_execution(bound_method, args, all_annotations)
-            if type_var_dict:
+            if type_var_dict := infer_type_vars_for_execution(
+                bound_method, args, all_annotations
+            ):
                 defined, = self.class_value.define_generics(
                     infer_type_vars_for_execution(signature.value, args, all_annotations),
                 )
@@ -376,21 +373,18 @@ class TreeInstance(_BaseTreeInstance):
             # {'a': 4}
             for key, lazy_context in reversed(list(self._arguments.unpack())):
                 if key is None:
-                    values = ValueSet.from_sets(
+                    if values := ValueSet.from_sets(
                         dct_value.py__simple_getitem__(index)
                         for dct_value in lazy_context.infer()
                         if dct_value.array_type == 'dict'
-                    )
-                    if values:
+                    ):
                         return values
-                else:
-                    if key == index:
-                        return lazy_context.infer()
+                elif key == index:
+                    return lazy_context.infer()
         return super().py__simple_getitem__(index)
 
     def __repr__(self):
-        return "<%s of %s(%s)>" % (self.__class__.__name__, self.class_value,
-                                   self._arguments)
+        return f"<{self.__class__.__name__} of {self.class_value}({self._arguments})>"
 
 
 class AnonymousInstance(_BaseTreeInstance):
@@ -470,7 +464,7 @@ class BoundMethod(FunctionMixin, ValueWrapper):
         return [sig.bind(self) for sig in super().get_signatures()]
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self._wrapped_value)
+        return f'<{self.__class__.__name__}: {self._wrapped_value}>'
 
 
 class CompiledBoundMethod(ValueWrapper):
@@ -502,10 +496,9 @@ class SelfName(TreeNameDefinition):
         if stmt is not None:
             if stmt.children[1].type == "annassign":
                 from jedi.inference.gradual.annotation import infer_annotation
-                values = infer_annotation(
+                if values := infer_annotation(
                     self.parent_context, stmt.children[1].children[1]
-                ).execute_annotation()
-                if values:
+                ).execute_annotation():
                     return values
         return super().infer()
 
@@ -550,7 +543,7 @@ class InstanceClassFilter(AbstractFilter):
         ]
 
     def __repr__(self):
-        return '<%s for %s>' % (self.__class__.__name__, self._class_filter)
+        return f'<{self.__class__.__name__} for {self._class_filter}>'
 
 
 class SelfAttributeFilter(ClassFilter):

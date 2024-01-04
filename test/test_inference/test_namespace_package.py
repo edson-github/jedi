@@ -34,7 +34,7 @@ def test_goto_definition(Script):
 def test_goto_assignment(Script, source, solution):
     ass = script_with_path(Script, source).goto()
     assert len(ass) == 1
-    assert ass[0].description == "foo = '%s'" % solution
+    assert ass[0].description == f"foo = '{solution}'"
 
 
 def test_simple_completions(Script):
@@ -59,10 +59,10 @@ def test_simple_completions(Script):
     ]
 )
 def test_completions(Script, source, solution):
-    for c in script_with_path(Script, source + '; x.').complete():
+    for c in script_with_path(Script, f'{source}; x.').complete():
         if c.name == 'foo':
             completion = c
-    solution = "foo = '%s'" % solution
+    solution = f"foo = '{solution}'"
     assert completion.description == solution
 
 

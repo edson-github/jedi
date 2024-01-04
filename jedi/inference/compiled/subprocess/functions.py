@@ -74,7 +74,7 @@ def _get_init_path(directory_path):
     None.
     """
     for suffix in all_suffixes():
-        path = os.path.join(directory_path, '__init__' + suffix)
+        path = os.path.join(directory_path, f'__init__{suffix}')
         if os.path.exists(path):
             return path
     return None
@@ -113,11 +113,7 @@ def _iter_module_names(inference_state, paths):
                 if name != '__pycache__' and name.isidentifier():
                     yield name
             else:
-                if name.endswith('.pyi'):  # Stub files
-                    modname = name[:-4]
-                else:
-                    modname = inspect.getmodulename(name)
-
+                modname = name[:-4] if name.endswith('.pyi') else inspect.getmodulename(name)
                 if modname and '.' not in modname:
                     if modname != '__init__':
                         yield modname
@@ -179,10 +175,10 @@ def _find_module_py33(string, path=None, loader=None, full_name=None, is_global_
         except ValueError as e:
             # See #491. Importlib might raise a ValueError, to avoid this, we
             # just raise an ImportError to fix the issue.
-            raise ImportError("Originally  " + repr(e))
+            raise ImportError(f"Originally  {repr(e)}")
 
     if loader is None:
-        raise ImportError("Couldn't find a loader for {}".format(string))
+        raise ImportError(f"Couldn't find a loader for {string}")
 
     return _from_loader(loader, string)
 

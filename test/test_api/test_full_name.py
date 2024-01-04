@@ -111,7 +111,7 @@ def test_os_path(Script):
 def test_os_issues(Script):
     """Issue #873"""
     # nt is not found, because it's deleted
-    assert [c.name for c in Script('import os\nos.nt''').complete()] == []
+    assert not [c.name for c in Script('import os\nos.nt''').complete()]
 
 
 def test_param_name(Script):

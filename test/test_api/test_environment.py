@@ -37,7 +37,7 @@ def test_versions(version):
             raise
         pytest.skip()
 
-    assert version == str(env.version_info[0]) + '.' + str(env.version_info[1])
+    assert version == f'{str(env.version_info[0])}.{str(env.version_info[1])}'
     assert env.get_sys_path()
 
 

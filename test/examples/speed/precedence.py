@@ -2,34 +2,22 @@ def marks(code):
     if '.' in code:
         another(code[:code.index(',') - 1] + '!')
     else:
-        another(code + '.')
+        another(f'{code}.')
 
 
 def another(code2):
-    call(numbers(code2 + 'haha'))
+    call(numbers(f'{code2}haha'))
 
 marks('start1 ')
 marks('start2 ')
 
 
 def alphabet(code4):
-    if 1:
-        if 2:
-            return code4 + 'a'
-        else:
-            return code4 + 'b'
-    else:
-        if 2:
-            return code4 + 'c'
-        else:
-            return code4 + 'd'
+    return f'{code4}a'
 
 
 def numbers(code5):
-    if 2:
-        return alphabet(code5 + '1')
-    else:
-        return alphabet(code5 + '2')
+    return alphabet(f'{code5}1')
 
 
 def call(code3):

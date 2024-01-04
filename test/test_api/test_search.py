@@ -7,8 +7,7 @@ import pytest
 class SomeClass:
     class SomeClass:
         def twice(self, a):
-            something = os
-            return something
+            return os
 
     def twice(self, b):
         pass
@@ -71,7 +70,9 @@ def test_simple_search(Script, string, descriptions, kwargs):
     else:
         defs = Script(path=__file__).search(string, **kwargs)
     this_mod = 'test.test_api.test_search.'
-    assert [d.type + ' ' + d.full_name.replace(this_mod, '') for d in defs] == descriptions
+    assert [
+        f'{d.type} ' + d.full_name.replace(this_mod, '') for d in defs
+    ] == descriptions
 
 
 @pytest.mark.parametrize(

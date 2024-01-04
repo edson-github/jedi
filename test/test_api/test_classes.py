@@ -348,10 +348,7 @@ def test_parent_on_comprehension(Script):
 
 def test_type(Script):
     for c in Script('a = [str()]; a[0].').complete():
-        if c.name == '__class__' and False:  # TODO fix.
-            assert c.type == 'class'
-        else:
-            assert c.type in ('function', 'statement')
+        assert c.type in ('function', 'statement')
 
     for c in Script('list.').complete():
         assert c.type
@@ -566,10 +563,7 @@ def test_inheritance_module_path(Script, goto, code, name, file_name):
     whatever_path = base_path.joinpath('NOT_EXISTING.py')
 
     script = Script(code, path=whatever_path)
-    if goto is None:
-        func, = script.infer()
-    else:
-        func, = script.goto(follow_imports=goto)
+    func, = script.infer() if goto is None else script.goto(follow_imports=goto)
     assert func.type == 'function'
     assert func.name == name
     assert func.module_path == base_path.joinpath(file_name)

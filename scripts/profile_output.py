@@ -31,19 +31,14 @@ def f8(x):
     ret = "%7.3f " % x
     if ret == '  0.000 ':
         return "%6dµs" % (x * 1e6)
-    if ret.startswith('  0.00'):
-        return "%8.4f" % x
-    return ret
+    return "%8.4f" % x if ret.startswith('  0.00') else ret
 
 
 def run(code, index, infer=False):
     start = time.time()
     script = jedi.Script(code)
-    if infer:
-        result = script.infer()
-    else:
-        result = script.complete()
-    print('Used %ss for the %sth run.' % (time.time() - start, index + 1))
+    result = script.infer() if infer else script.complete()
+    print(f'Used {time.time() - start}s for the {index + 1}th run.')
     return result
 
 

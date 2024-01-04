@@ -68,20 +68,21 @@ def _infer_scalar_field(inference_state, field_name, field_tree_instance, is_ins
 
 @iterator_to_value_set
 def _get_foreign_key_values(cls, field_tree_instance):
-    if isinstance(field_tree_instance, TreeInstance):
-        # TODO private access..
-        argument_iterator = field_tree_instance._arguments.unpack()
-        key, lazy_values = next(argument_iterator, (None, None))
-        if key is None and lazy_values is not None:
-            for value in lazy_values.infer():
-                if value.py__name__() == 'str':
-                    foreign_key_class_name = value.get_safe_value()
-                    module = cls.get_root_context()
-                    for v in module.py__getattribute__(foreign_key_class_name):
-                        if v.is_class():
-                            yield v
-                elif value.is_class():
-                    yield value
+    if not isinstance(field_tree_instance, TreeInstance):
+        return
+    # TODO private access..
+    argument_iterator = field_tree_instance._arguments.unpack()
+    key, lazy_values = next(argument_iterator, (None, None))
+    if key is None and lazy_values is not None:
+        for value in lazy_values.infer():
+            if value.py__name__() == 'str':
+                foreign_key_class_name = value.get_safe_value()
+                module = cls.get_root_context()
+                for v in module.py__getattribute__(foreign_key_class_name):
+                    if v.is_class():
+                        yield v
+            elif value.is_class():
+                yield value
 
 
 def _infer_field(cls, field_name, is_instance):
@@ -100,13 +101,19 @@ def _infer_field(cls, field_name, is_instance):
                 return _get_deferred_attributes(inference_state)
 
             values = _get_foreign_key_values(cls, field_tree_instance)
-            if is_many_to_many:
-                return ValueSet(filter(None, [
-                    _create_manager_for(v, 'RelatedManager') for v in values
-                ]))
-            else:
-                return values.execute_with_values()
-
+            return (
+                ValueSet(
+                    filter(
+                        None,
+                        [
+                            _create_manager_for(v, 'RelatedManager')
+                            for v in values
+                        ],
+                    )
+                )
+                if is_many_to_many
+                else values.execute_with_values()
+            )
     debug.dbg('django plugin: fail to infer `%s` from class `%s`',
               field_name.string_name, cls.py__name__())
     return result

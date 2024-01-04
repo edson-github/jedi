@@ -65,8 +65,7 @@ def _search_param_in_numpydocstr(docstr, param_str):
             return []
     for p_name, p_type, p_descr in params:
         if p_name == param_str:
-            m = re.match(r'([^,]+(,[^,]+)*?)(,[ ]*optional)?$', p_type)
-            if m:
+            if m := re.match(r'([^,]+(,[^,]+)*?)(,[ ]*optional)?$', p_type):
                 p_type = m.group(1)
             return list(_expand_typestr(p_type))
     return []
@@ -150,8 +149,7 @@ def _search_param_in_docstr(docstr, param_str):
     patterns = [re.compile(p % re.escape(param_str))
                 for p in DOCSTRING_PARAM_PATTERNS]
     for pattern in patterns:
-        match = pattern.search(docstr)
-        if match:
+        if match := pattern.search(docstr):
             return [_strip_rst_role(match.group(1))]
 
     return _search_param_in_numpydocstr(docstr, param_str)
@@ -172,8 +170,7 @@ def _strip_rst_role(type_str):
     http://sphinx-doc.org/domains.html#cross-referencing-python-objects
 
     """
-    match = REST_ROLE_PATTERN.match(type_str)
-    if match:
+    if match := REST_ROLE_PATTERN.match(type_str):
         return match.group(1)
     else:
         return type_str
@@ -235,18 +232,20 @@ def _execute_array_values(inference_state, array):
     ones.  `(str, int)` means that it returns a tuple with both types.
     """
     from jedi.inference.value.iterable import SequenceLiteralValue, FakeTuple, FakeList
-    if isinstance(array, SequenceLiteralValue) and array.array_type in ('tuple', 'list'):
-        values = []
-        for lazy_value in array.py__iter__():
-            objects = ValueSet.from_sets(
-                _execute_array_values(inference_state, typ)
-                for typ in lazy_value.infer()
-            )
-            values.append(LazyKnownValues(objects))
-        cls = FakeTuple if array.array_type == 'tuple' else FakeList
-        return {cls(inference_state, values)}
-    else:
+    if not isinstance(array, SequenceLiteralValue) or array.array_type not in (
+        'tuple',
+        'list',
+    ):
         return array.execute_annotation()
+    values = []
+    for lazy_value in array.py__iter__():
+        objects = ValueSet.from_sets(
+            _execute_array_values(inference_state, typ)
+            for typ in lazy_value.infer()
+        )
+        values.append(LazyKnownValues(objects))
+    cls = FakeTuple if array.array_type == 'tuple' else FakeList
+    return {cls(inference_state, values)}
 
 
 @inference_state_method_cache()

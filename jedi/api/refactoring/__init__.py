@@ -76,7 +76,7 @@ class ChangedFile:
             f.write(self.get_new_code())
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self._from_path)
+        return f'<{self.__class__.__name__}: {self._from_path}>'
 
 
 class Refactoring:
@@ -118,12 +118,15 @@ class Refactoring:
         return sorted(self._renames)
 
     def get_diff(self):
-        text = ''
         project_path = self._inference_state.project.path
-        for from_, to in self.get_renames():
-            text += 'rename from %s\nrename to %s\n' \
-                % (_try_relative_to(from_, project_path), _try_relative_to(to, project_path))
-
+        text = ''.join(
+            'rename from %s\nrename to %s\n'
+            % (
+                _try_relative_to(from_, project_path),
+                _try_relative_to(to, project_path),
+            )
+            for from_, to in self.get_renames()
+        )
         return text + ''.join(f.get_diff() for f in self.get_changed_files().values())
 
     def apply(self):
@@ -161,10 +164,9 @@ def rename(inference_state, definitions, new_name):
         elif isinstance(d._name, ImplicitNSName):
             for p in d._name._value.py__path__():
                 file_renames.add(_calculate_rename(Path(p), new_name))
-        else:
-            if tree_name is not None:
-                fmap = file_tree_name_map.setdefault(d.module_path, {})
-                fmap[tree_name] = tree_name.prefix + new_name
+        elif tree_name is not None:
+            fmap = file_tree_name_map.setdefault(d.module_path, {})
+            fmap[tree_name] = tree_name.prefix + new_name
     return Refactoring(inference_state, file_tree_name_map, file_renames)
 
 
@@ -177,7 +179,7 @@ def inline(inference_state, names):
         raise RefactoringError("Cannot inline builtins/extensions")
 
     definitions = [n for n in names if n.tree_name.is_definition()]
-    if len(definitions) == 0:
+    if not definitions:
         raise RefactoringError("No definition found to inline")
     if len(definitions) > 1:
         raise RefactoringError("Cannot inline a name with multiple definitions")
@@ -192,7 +194,7 @@ def inline(inference_state, names):
             funcdef='function',
             classdef='class',
         ).get(expr_stmt.type, expr_stmt.type)
-        raise RefactoringError("Cannot inline a %s" % type_)
+        raise RefactoringError(f"Cannot inline a {type_}")
 
     if len(expr_stmt.get_defined_names(include_setitem=True)) > 1:
         raise RefactoringError("Cannot inline a statement with multiple definitions")
@@ -223,7 +225,7 @@ def inline(inference_state, names):
                 or tree_name.parent.type in EXPRESSION_PARTS \
                 or tree_name.parent.type == 'trailer' \
                 and tree_name.parent.get_next_sibling() is not None:
-            s = '(' + replace_code + ')'
+            s = f'({replace_code})'
 
         of_path = file_to_node_changes.setdefault(path, {})
 
@@ -233,7 +235,7 @@ def inline(inference_state, names):
         if par.type == 'trailer' and par.children[0] == '.':
             prefix = par.parent.children[0].prefix
             n = par
-            for some_node in par.parent.children[:par.parent.children.index(par)]:
+            for some_node in n.parent.children[:n.parent.children.index(n)]:
                 of_path[some_node] = ''
         of_path[n] = prefix + s
 

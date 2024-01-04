@@ -70,18 +70,21 @@ def _try_stub_to_python_names(names, prefer_stub_to_compiled=False):
             continue
 
         if name.api_type == 'module':
-            values = convert_values(name.infer(), ignore_compiled=prefer_stub_to_compiled)
-            if values:
+            if values := convert_values(
+                name.infer(), ignore_compiled=prefer_stub_to_compiled
+            ):
                 for v in values:
                     yield v.name
                 continue
         else:
             v = name.get_defining_qualified_value()
             if v is not None:
-                converted = _stub_to_python_value_set(v, ignore_compiled=prefer_stub_to_compiled)
-                if converted:
-                    converted_names = converted.goto(name.get_public_name())
-                    if converted_names:
+                if converted := _stub_to_python_value_set(
+                    v, ignore_compiled=prefer_stub_to_compiled
+                ):
+                    if converted_names := converted.goto(
+                        name.get_public_name()
+                    ):
                         for n in converted_names:
                             if n.get_root_context().is_stub():
                                 # If it's a stub again, it means we're going in
@@ -131,10 +134,10 @@ def _python_to_stub_names(names, fallback_to_python=False):
         else:
             v = name.get_defining_qualified_value()
             if v is not None:
-                converted = to_stub(v)
-                if converted:
-                    converted_names = converted.goto(name.get_public_name())
-                    if converted_names:
+                if converted := to_stub(v):
+                    if converted_names := converted.goto(
+                        name.get_public_name()
+                    ):
                         yield from converted_names
                         continue
         if fallback_to_python:

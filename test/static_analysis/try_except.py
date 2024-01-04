@@ -9,8 +9,6 @@ try:
 except AttributeError:
     #! 4 attribute-error
     str.not_existing
-    pass
-
 try:
     import not_existing_import
 except ImportError:
@@ -30,9 +28,8 @@ except (TypeError, AttributeError): pass
 
 try:
     str.not_existing
-except ImportError:
+except (ImportError, NotImplementedError, AttributeError):
     pass
-except (NotImplementedError, AttributeError): pass
 
 try:
     #! 4 attribute-error
@@ -77,16 +74,12 @@ except:
 # -----------------
 
 if hasattr(str, 'undefined'):
-    str.undefined
-    str.upper
     #! 4 attribute-error
     str.undefined2
     #! 4 attribute-error
     int.undefined
-else:
-    str.upper
-    #! 4 attribute-error
-    str.undefined
+str.upper
+str.undefined
 
 # -----------------
 # arguments

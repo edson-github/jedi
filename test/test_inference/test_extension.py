@@ -14,14 +14,11 @@ def test_completions(Script):
 
 
 def test_get_signatures_extension(Script, environment):
-    if os.name == 'nt':
-        func = 'LoadLibrary'
-    else:
-        func = 'dlopen'
-    s = Script('import _ctypes; _ctypes.%s(' % (func,))
+    func = 'LoadLibrary' if os.name == 'nt' else 'dlopen'
+    s = Script(f'import _ctypes; _ctypes.{func}(')
     sigs = s.get_signatures()
     assert len(sigs) == 1
-    assert len(sigs[0].params) in (1, 2)
+    assert len(sigs[0].params) in {1, 2}
 
 
 def test_get_signatures_stdlib(Script):

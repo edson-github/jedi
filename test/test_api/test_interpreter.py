@@ -161,12 +161,13 @@ def test_slice():
 
 
 def test_getitem_side_effects():
+
+
+
     class Foo2:
         def __getitem__(self, index):
-            # Possible side effects here, should therefore not call this.
-            if True:
-                raise NotImplementedError()
-            return index
+            raise NotImplementedError()
+
 
     foo = Foo2()
     _assert_interpreter_complete('foo["asdf"].upper', locals(), ['upper'])
@@ -243,7 +244,7 @@ def test_property_error_oldstyle(allow_unsafe_getattr):
         assert lst == [1]
     else:
         # There should not be side effects
-        assert lst == []
+        assert not lst
 
 
 def test_property_error_newstyle(allow_unsafe_getattr):
@@ -263,7 +264,7 @@ def test_property_error_newstyle(allow_unsafe_getattr):
         assert lst == [1]
     else:
         # There should not be side effects
-        assert lst == []
+        assert not lst
 
 
 def test_property_content():
@@ -378,6 +379,7 @@ def test_repr_execution_issue():
 
 
 def test_dir_magic_method(allow_unsafe_getattr):
+
     class CompleteAttrs(object):
         def __getattr__(self, name):
             if name == 'foo':
@@ -392,7 +394,7 @@ def test_dir_magic_method(allow_unsafe_getattr):
     itp = jedi.Interpreter("ca.", [{'ca': CompleteAttrs()}])
     completions = itp.complete()
     names = [c.name for c in completions]
-    assert ('__dir__' in names) is True
+    assert '__dir__' in names
     assert '__class__' in names
     assert 'foo' in names
     assert 'bar' in names
@@ -407,14 +409,15 @@ def test_dir_magic_method(allow_unsafe_getattr):
 
 
 def test_name_not_findable():
-    class X():
-        if 0:
-            NOT_FINDABLE
 
+
+
+    class X:
         def hidden(self):
             return
 
         hidden.__name__ = 'NOT_FINDABLE'
+
 
     setattr(X, 'NOT_FINDABLE', X.hidden)
 
@@ -842,6 +845,7 @@ def test_nested__getitem__():
 
 @pytest.mark.parametrize('class_is_findable', [False, True])
 def test_custom__getitem__(class_is_findable, allow_unsafe_getattr):
+
     class CustomGetItem:
         def __getitem__(self, x: int):
             return "asdf"
@@ -850,8 +854,5 @@ def test_custom__getitem__(class_is_findable, allow_unsafe_getattr):
         CustomGetItem.__name__ = "something_somewhere"
 
     namespace = {'c': CustomGetItem()}
-    if not class_is_findable and not allow_unsafe_getattr:
-        expected = []
-    else:
-        expected = ['upper']
+    expected = ['upper'] if class_is_findable or allow_unsafe_getattr else []
     _assert_interpreter_complete('c["a"].up', namespace, expected)

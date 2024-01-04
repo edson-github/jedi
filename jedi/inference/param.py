@@ -46,7 +46,7 @@ class ExecutedParamName(ParamName):
         return matches
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self.string_name)
+        return f'<{self.__class__.__name__}: {self.string_name}>'
 
 
 def get_executed_param_names_and_issues(function_value, arguments):
@@ -120,8 +120,7 @@ def get_executed_param_names_and_issues(function_value, arguments):
             else:
                 if key in keys_used:
                     had_multiple_value_error = True
-                    m = ("TypeError: %s() got multiple values for keyword argument '%s'."
-                         % (funcdef.name, key))
+                    m = f"TypeError: {funcdef.name}() got multiple values for keyword argument '{key}'."
                     for contextualized_node in arguments.get_calling_nodes():
                         issues.append(
                             analysis.add(contextualized_node.context,
@@ -207,8 +206,7 @@ def get_executed_param_names_and_issues(function_value, arguments):
                     )
 
     for key, lazy_value in non_matching_keys.items():
-        m = "TypeError: %s() got an unexpected keyword argument '%s'." \
-            % (funcdef.name, key)
+        m = f"TypeError: {funcdef.name}() got an unexpected keyword argument '{key}'."
         issues.append(
             _add_argument_issue(
                 'type-error-keyword-argument',
@@ -252,6 +250,5 @@ def _error_argument_count(funcdef, actual_count):
     if default_arguments == 0:
         before = 'exactly '
     else:
-        before = 'from %s to ' % (len(params) - default_arguments)
-    return ('TypeError: %s() takes %s%s arguments (%s given).'
-            % (funcdef.name, before, len(params), actual_count))
+        before = f'from {len(params) - default_arguments} to '
+    return f'TypeError: {funcdef.name}() takes {before}{len(params)} arguments ({actual_count} given).'

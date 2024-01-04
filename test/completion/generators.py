@@ -88,8 +88,8 @@ class Iter:
     def __iter__(self):
         yield ""
         i = 0
+        v = 1
         while True:
-            v = 1
             yield v
             i += 1
 a, b, c = Iter()
@@ -119,9 +119,8 @@ class Counter:
     def __next__(self):
         if self.current > self.high:
             raise StopIteration
-        else:
-            self.current += 1
-            return self.current - 1
+        self.current += 1
+        return self.current - 1
 
 
 for c in Counter(3, 8):
@@ -170,7 +169,7 @@ a
 #? str()
 b
 
-a, = (a for a in [1])
+a, = iter([1])
 #? int()
 a
 
@@ -214,7 +213,7 @@ next(x())
 x()
 
 def x():
-    for i in range(3):
+    for _ in range(3):
         yield
 
 #? None

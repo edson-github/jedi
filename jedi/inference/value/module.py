@@ -89,7 +89,7 @@ class ModuleMixin(SubModuleDictMixin):
     def _module_attributes_dict(self):
         names = ['__package__', '__doc__', '__name__']
         # All the additional module attributes are strings.
-        dct = dict((n, _ModuleAttributeName(self, n)) for n in names)
+        dct = {n: _ModuleAttributeName(self, n) for n in names}
         path = self.py__file__()
         if path is not None:
             dct['__file__'] = _ModuleAttributeName(self, '__file__', str(path))
@@ -145,10 +145,7 @@ class ModuleValue(ModuleMixin, TreeValue):
             tree_node=module_node
         )
         self.file_io = file_io
-        if file_io is None:
-            self._path: Optional[Path] = None
-        else:
-            self._path = file_io.path
+        self._path = None if file_io is None else file_io.path
         self.string_names = string_names  # Optional[Tuple[str, ...]]
         self.code_lines = code_lines
         self._is_package = is_package
@@ -162,18 +159,13 @@ class ModuleValue(ModuleMixin, TreeValue):
         return super().is_stub()
 
     def py__name__(self):
-        if self.string_names is None:
-            return None
-        return '.'.join(self.string_names)
+        return None if self.string_names is None else '.'.join(self.string_names)
 
     def py__file__(self) -> Optional[Path]:
         """
         In contrast to Python's __file__ can be None.
         """
-        if self._path is None:
-            return None
-
-        return self._path.absolute()
+        return None if self._path is None else self._path.absolute()
 
     def is_package(self):
         return self._is_package
@@ -182,9 +174,7 @@ class ModuleValue(ModuleMixin, TreeValue):
         if self.string_names is None:
             return []
 
-        if self._is_package:
-            return self.string_names
-        return self.string_names[:-1]
+        return self.string_names if self._is_package else self.string_names[:-1]
 
     def py__path__(self):
         """
@@ -223,8 +213,4 @@ class ModuleValue(ModuleMixin, TreeValue):
         return ModuleContext(self)
 
     def __repr__(self):
-        return "<%s: %s@%s-%s is_stub=%s>" % (
-            self.__class__.__name__, self.py__name__(),
-            self.tree_node.start_pos[0], self.tree_node.end_pos[0],
-            self.is_stub()
-        )
+        return f"<{self.__class__.__name__}: {self.py__name__()}@{self.tree_node.start_pos[0]}-{self.tree_node.end_pos[0]} is_stub={self.is_stub()}>"

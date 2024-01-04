@@ -42,13 +42,13 @@ wx_core = urllib2.urlopen(uri).read()
 
 def run():
     start = time.time()
-    print('Process Memory before: %skB' % process_memory())
+    print(f'Process Memory before: {process_memory()}kB')
     # After this the module should be cached.
     # Need to invent a path so that it's really cached.
     jedi.Script(wx_core, path='foobar.py').complete()
 
     gc.collect()  # make sure that it's all fair and the gc did its job.
-    print('Process Memory after: %skB' % process_memory())
+    print(f'Process Memory after: {process_memory()}kB')
 
     print(objgraph.most_common_types(limit=50))
     print('\nIt took %s seconds to parse the file.' % (time.time() - start))

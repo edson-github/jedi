@@ -193,25 +193,24 @@ class TreeArguments(AbstractArguments):
                 arrays = self.context.infer_node(el)
                 for dct in arrays:
                     yield from _star_star_dict(self.context, dct, el, funcdef)
+            elif el.type == 'argument':
+                c = el.children
+                if len(c) == 3:  # Keyword argument.
+                    named_args.append((c[0].value, LazyTreeValue(self.context, c[2]),))
+                else:  # Generator comprehension.
+                    # Include the brackets with the parent.
+                    sync_comp_for = el.children[1]
+                    if sync_comp_for.type == 'comp_for':
+                        sync_comp_for = sync_comp_for.children[1]
+                    comp = iterable.GeneratorComprehension(
+                        self._inference_state,
+                        defining_context=self.context,
+                        sync_comp_for_node=sync_comp_for,
+                        entry_node=el.children[0],
+                    )
+                    yield None, LazyKnownValue(comp)
             else:
-                if el.type == 'argument':
-                    c = el.children
-                    if len(c) == 3:  # Keyword argument.
-                        named_args.append((c[0].value, LazyTreeValue(self.context, c[2]),))
-                    else:  # Generator comprehension.
-                        # Include the brackets with the parent.
-                        sync_comp_for = el.children[1]
-                        if sync_comp_for.type == 'comp_for':
-                            sync_comp_for = sync_comp_for.children[1]
-                        comp = iterable.GeneratorComprehension(
-                            self._inference_state,
-                            defining_context=self.context,
-                            sync_comp_for_node=sync_comp_for,
-                            entry_node=el.children[0],
-                        )
-                        yield None, LazyKnownValue(comp)
-                else:
-                    yield None, LazyTreeValue(self.context, el)
+                yield None, LazyTreeValue(self.context, el)
 
         # Reordering arguments is necessary, because star args sometimes appear
         # after named argument, but in the actual order it's prepended.
@@ -234,7 +233,7 @@ class TreeArguments(AbstractArguments):
             yield TreeNameDefinition(self.context, name)
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self.argument_node)
+        return f'<{self.__class__.__name__}: {self.argument_node}>'
 
     def get_calling_nodes(self):
         old_arguments_list = []
@@ -275,7 +274,7 @@ class ValuesArguments(AbstractArguments):
             yield None, LazyKnownValues(values)
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self._values_list)
+        return f'<{self.__class__.__name__}: {self._values_list}>'
 
 
 class TreeArgumentsWrapper(_AbstractArgumentsMixin):
@@ -301,15 +300,14 @@ class TreeArgumentsWrapper(_AbstractArgumentsMixin):
         return self._wrapped_arguments.get_calling_nodes()
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self._wrapped_arguments)
+        return f'<{self.__class__.__name__}: {self._wrapped_arguments}>'
 
 
 def _iterate_star_args(context, array, input_node, funcdef=None):
     if not array.py__getattribute__('__iter__'):
         if funcdef is not None:
             # TODO this funcdef should not be needed.
-            m = "TypeError: %s() argument after * must be a sequence, not %s" \
-                % (funcdef.name.value, array)
+            m = f"TypeError: {funcdef.name.value}() argument after * must be a sequence, not {array}"
             analysis.add(context, 'type-error-star', input_node, message=m)
     try:
         iter_ = array.py__iter__
@@ -329,7 +327,6 @@ def _star_star_dict(context, array, input_node, funcdef):
         return array.exact_key_items()
     else:
         if funcdef is not None:
-            m = "TypeError: %s argument after ** must be a mapping, not %s" \
-                % (funcdef.name.value, array)
+            m = f"TypeError: {funcdef.name.value} argument after ** must be a mapping, not {array}"
             analysis.add(context, 'type-error-star-star', input_node, message=m)
         return {}

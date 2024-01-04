@@ -86,14 +86,14 @@ def increase_indent(func):
 def increase_indent_cm(title=None, color='MAGENTA'):
     global _debug_indent
     if title:
-        dbg('Start: ' + title, color=color)
+        dbg(f'Start: {title}', color=color)
     _debug_indent += 1
     try:
         yield
     finally:
         _debug_indent -= 1
         if title:
-            dbg('End: ' + title, color=color)
+            dbg(f'End: {title}', color=color)
 
 
 def dbg(message, *args, color='GREEN'):
@@ -103,7 +103,7 @@ def dbg(message, *args, color='GREEN'):
     if debug_function and enable_notice:
         i = ' ' * _debug_indent
         _lazy_colorama_init()
-        debug_function(color, i + 'dbg: ' + message % tuple(repr(a) for a in args))
+        debug_function(color, f'{i}dbg: ' + message % tuple(repr(a) for a in args))
 
 
 def warning(message, *args, format=True):
@@ -111,14 +111,14 @@ def warning(message, *args, format=True):
         i = ' ' * _debug_indent
         if format:
             message = message % tuple(repr(a) for a in args)
-        debug_function('RED', i + 'warning: ' + message)
+        debug_function('RED', f'{i}warning: {message}')
 
 
 def speed(name):
     if debug_function and enable_speed:
         now = time.time()
         i = ' ' * _debug_indent
-        debug_function('YELLOW', i + 'speed: ' + '%s %s' % (name, now - _start_time))
+        debug_function('YELLOW', f'{i}speed: ' + f'{name} {now - _start_time}')
 
 
 def print_to_stdout(color, str_out):

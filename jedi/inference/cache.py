@@ -38,12 +38,12 @@ def _memoize_default(default=_NO_DEFAULT, inference_state_is_first_arg=False,
             key = (obj, args, frozenset(kwargs.items()))
             if key in memo:
                 return memo[key]
-            else:
-                if default is not _NO_DEFAULT:
-                    memo[key] = default
-                rv = function(obj, *args, **kwargs)
-                memo[key] = rv
-                return rv
+            if default is not _NO_DEFAULT:
+                memo[key] = default
+            rv = function(obj, *args, **kwargs)
+            memo[key] = rv
+            return rv
+
         return wrapper
 
     return func
@@ -109,7 +109,7 @@ def inference_state_method_generator_cache():
                 try:
                     next_element = cached_lst[i]
                     if next_element is _RECURSION_SENTINEL:
-                        debug.warning('Found a generator recursion for %s' % obj)
+                        debug.warning(f'Found a generator recursion for {obj}')
                         # This means we have hit a recursion.
                         return
                 except IndexError:
@@ -121,6 +121,7 @@ def inference_state_method_generator_cache():
                     cached_lst[-1] = next_element
                 yield next_element
                 i += 1
+
         return wrapper
 
     return func

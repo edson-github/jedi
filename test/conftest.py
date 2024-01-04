@@ -47,11 +47,10 @@ def parse_test_files_option(opt):
     ('generators.py', [10, 13, 19])
     """
     opt = str(opt)
-    if ':' in opt:
-        (f_name, rest) = opt.split(':', 1)
-        return f_name, list(map(int, rest.split(',')))
-    else:
+    if ':' not in opt:
         return opt, []
+    (f_name, rest) = opt.split(':', 1)
+    return f_name, list(map(int, rest.split(',')))
 
 
 def pytest_generate_tests(metafunc):
@@ -67,15 +66,16 @@ def pytest_generate_tests(metafunc):
         if thirdparty:
             cases.extend(run.collect_dir_tests(
                 os.path.join(base_dir, 'thirdparty'), test_files, True))
-        ids = ["%s:%s" % (c.module_name, c.line_nr_test) for c in cases]
+        ids = [f"{c.module_name}:{c.line_nr_test}" for c in cases]
         metafunc.parametrize('case', cases, ids=ids)
 
     if 'refactor_case' in metafunc.fixturenames:
         base_dir = metafunc.config.option.refactor_case_dir
         cases = list(refactor.collect_dir_tests(base_dir, test_files))
         metafunc.parametrize(
-            'refactor_case', cases,
-            ids=[c.refactor_type + '-' + c.name for c in cases]
+            'refactor_case',
+            cases,
+            ids=[f'{c.refactor_type}-{c.name}' for c in cases],
         )
 
     if 'static_analysis_case' in metafunc.fixturenames:

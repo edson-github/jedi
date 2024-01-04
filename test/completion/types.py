@@ -36,7 +36,7 @@ arr = []
 arr.app
 
 #? ['append']
-list().app
+[].app
 #? ['append']
 [].append
 
@@ -53,8 +53,7 @@ x.pop()
 x = [3]
 #? int()
 x.pop()
-x = []
-x.append(1.0)
+x = [1.0]
 #? float()
 x.pop()
 
@@ -167,7 +166,7 @@ s = {1, 2, 3}
 {*s}
 
 #? set()
-{*s, 4, *s}
+{4, *s}
 
 s = {1, 2, 3}
 # Should resolve to int() but jedi is not smart enough yet

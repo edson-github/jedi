@@ -137,8 +137,8 @@ class E(object):
     def __init__(self, a):
         self.a = a
 
-    def f(x):
-        return x
+    def f(self):
+        return self
     f = staticmethod(f)
     #?
     f.__func
@@ -147,7 +147,7 @@ class E(object):
     def g(x):
         return x
 
-    def s(cls, x):
+    def s(self, x):
         return x
     s = classmethod(s)
 
@@ -195,10 +195,7 @@ class Memoize():
         self.func = func
 
     def __get__(self, obj, objtype):
-        if obj is None:
-            return self.func
-
-        return partial(self, obj)
+        return self.func if obj is None else partial(self, obj)
 
     def __call__(self, *args, **kwargs):
         # We don't do caching here, but that's what would normally happen.

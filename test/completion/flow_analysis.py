@@ -5,10 +5,7 @@
 x = 3
 if NOT_DEFINED:
     x = ''
-#? 6 int()
-elif x:
-    pass
-else:
+elif not x:
     #? int()
     x
 
@@ -29,20 +26,12 @@ finally:
     x
     x = tuple
 
-if False:
-    with open("") as defined_in_false:
-        #? ['flush']
-        defined_in_false.flu
-
 # -----------------
 # Return checks
 # -----------------
 
 def foo(x):
-    if 1.0:
-        return 1
-    else:
-        return ''
+    return 1
 
 #? int()
 foo(1)
@@ -51,10 +40,7 @@ foo(1)
 #  Exceptions are not analyzed. So check both if branches
 def try_except(x):
     try:
-        if 0:
-            return 1
-        else:
-            return ''
+        return ''
     except AttributeError:
         return 1.0
 
@@ -65,10 +51,7 @@ try_except(1)
 #  Exceptions are not analyzed. So check both if branches
 def try_except(x):
     try:
-        if 0:
-            return 1
-        else:
-            return ''
+        return ''
     except AttributeError:
         return 1.0
 
@@ -77,9 +60,7 @@ try_except(1)
 
 def test_function():
     a = int(input())
-    if a % 2 == 0:
-        return True
-    return "False"
+    return True if a % 2 == 0 else "False"
 
 #? bool() str()
 test_function()
@@ -89,12 +70,7 @@ test_function()
 # -----------------
 
 def elif_flows1(x):
-    if False:
-        return 1
-    elif True:
-        return 1.0
-    else:
-        return ''
+    return 1.0
 
 #? float()
 elif_flows1(1)
@@ -102,12 +78,7 @@ elif_flows1(1)
 
 def elif_flows2(x):
     try:
-        if False:
-            return 1
-        elif 0:
-            return 1.0
-        else:
-            return ''
+        return ''
     except ValueError:
         return set
 
@@ -117,12 +88,7 @@ elif_flows2(1)
 
 def elif_flows3(x):
     try:
-        if True:
-            return 1
-        elif 0:
-            return 1.0
-        else:
-            return ''
+        return 1
     except ValueError:
         return set
 
@@ -133,10 +99,7 @@ elif_flows3(1)
 # mid-difficulty if statements
 # -----------------
 def check(a):
-    if a is None:
-        return 1
-    return ''
-    return set
+    return 1 if a is None else ''
 
 #? int()
 check(None)
@@ -159,13 +122,10 @@ if check == check:
     a = list
 #? list
 a
-if check != check:
-    a = set
-else:
-    a = dict
+a = set if check != check else dict
 #? dict
 a
-if not (check is not check):
+if check is check:
     a = 1
 #? int()
 a
@@ -178,12 +138,7 @@ a
 a = list
 def elif_name(x):
     try:
-        if True:
-            a = 1
-        elif 0:
-            a = 1.0
-        else:
-            return ''
+        a = 1
     except ValueError:
         a = x
     return a
@@ -191,17 +146,10 @@ def elif_name(x):
 #? int() set
 elif_name(set)
 
-if 0:
-    a = ''
-else:
-    a = int
+a = int
 
 #? int
 a
-
-# -----------------
-# isinstance
-# -----------------
 
 class A(): pass
 
@@ -237,38 +185,9 @@ isinst('')
 
 foobar = ''
 
-if 0:
-    within_flow = 1.0
-    #? float()
-    within_flow
-    #? str()
-    foobar
-    if 0:
-        nested = 1
-        #? int()
-        nested
-        #? float()
-        within_flow
-        #? str()
-        foobar
-    #?
-    nested
-
-if False:
-    in_false = 1
-    #? ['in_false']
-    in_false
-
-# -----------------
-# True objects like modules
-# -----------------
-
 class X():
     pass
-if X:
-    a = 1
-else:
-    a = ''
+a = 1 if X else ''
 #? int()
 a
 
@@ -278,17 +197,11 @@ a
 # -----------------
 
 def possible_recursion_error(filename):
-    if filename == 'a':
-        return filename
-    # It seems like without the brackets there wouldn't be a RecursionError.
-    elif type(filename) == str:
+    if filename == 'a' or type(filename) == str:
         return filename
 
 
-if NOT_DEFINED:
-    s = str()
-else:
-    s = str()
+s = str()
 #? str()
 possible_recursion_error(s)
 
@@ -299,11 +212,11 @@ possible_recursion_error(s)
 
 from import_tree import flow_import
 
-if 1 == flow_import.env:
+if flow_import.env == 1:
     a = 1
-elif 2 == flow_import.env:
+elif flow_import.env == 2:
     a = ''
-elif 3 == flow_import.env:
+elif flow_import.env == 3:
     a = 1.0
 
 #? int() str()

@@ -13,7 +13,7 @@ func(1)
 
 func
 
-int(1) + (int(2))+ func('')
+1 + 2 + func('')
 
 # Again the same function, but with another call.
 def func(a):
@@ -139,7 +139,7 @@ def from_comprehension(foo):
     #? int() float()
     return foo
 
-[from_comprehension(1.0) for n in (1,)]
+[from_comprehension(1.0) for _ in (1, )]
 [from_comprehension(n) for n in (1,)]
 
 # -----------------

@@ -85,13 +85,13 @@ def goto_import(context, tree_name):
             ) for c in values
         ])
         # Avoid recursion on the same names.
-        if names and not any(n.tree_name is tree_name for n in names):
+        if names and all(n.tree_name is not tree_name for n in names):
             return names
 
         path = import_path + (from_import_name,)
         importer = Importer(context.inference_state, path, module_context, level)
         values = importer.follow()
-    return set(s.name for s in values)
+    return {s.name for s in values}
 
 
 def _prepare_infer_import(module_context, tree_name):
@@ -120,7 +120,7 @@ def _add_error(value, name, message):
     if hasattr(name, 'parent') and value is not None:
         analysis.add(value, 'import-error', name, message)
     else:
-        debug.warning('ImportError without origin: ' + message)
+        debug.warning(f'ImportError without origin: {message}')
 
 
 def _level_to_base_import_path(project_path, directory, level):
@@ -129,7 +129,7 @@ def _level_to_base_import_path(project_path, directory, level):
     import .....foo), we can still try our best to help the user for
     completions.
     """
-    for i in range(level - 1):
+    for _ in range(level - 1):
         old = directory
         directory = os.path.dirname(directory)
         if old == directory:
@@ -142,8 +142,7 @@ def _level_to_base_import_path(project_path, directory, level):
     while True:
         if d == project_path:
             return level_import_paths, d
-        dir_name = os.path.basename(d)
-        if dir_name:
+        if dir_name := os.path.basename(d):
             level_import_paths.insert(0, dir_name)
             d = os.path.dirname(d)
         else:
@@ -164,7 +163,7 @@ class Importer:
 
         :param import_path: List of namespaces (strings or Names).
         """
-        debug.speed('import %s %s' % (import_path, module_context))
+        debug.speed(f'import {import_path} {module_context}')
         self._inference_state = inference_state
         self.level = level
         self._module_context = module_context
@@ -192,15 +191,7 @@ class Importer:
                 path = module_context.py__file__()
                 project_path = self._inference_state.project.path
                 import_path = list(import_path)
-                if path is None:
-                    # If no path is defined, our best guess is that the current
-                    # file is edited by a user on the current working
-                    # directory. We need to add an initial path, because it
-                    # will get removed as the name of the current file.
-                    directory = project_path
-                else:
-                    directory = os.path.dirname(path)
-
+                directory = project_path if path is None else os.path.dirname(path)
                 base_import_path, base_directory = _level_to_base_import_path(
                     project_path, directory, level,
                 )
@@ -352,13 +343,12 @@ class Importer:
                 for c in both_values:
                     for filter in c.get_filters():
                         names += filter.values()
+        elif self.level:
+            # We only get here if the level cannot be properly calculated.
+            names += self._get_module_names(self._fixed_sys_path)
         else:
-            if self.level:
-                # We only get here if the level cannot be properly calculated.
-                names += self._get_module_names(self._fixed_sys_path)
-            else:
-                # This is just the list of global imports.
-                names += self._get_module_names()
+            # This is just the list of global imports.
+            names += self._get_module_names()
         return names
 
 
@@ -400,10 +390,7 @@ def import_module(inference_state, import_names, parent_module_value, sys_path):
     """
     if import_names[0] in settings.auto_import_modules:
         module = _load_builtin_module(inference_state, import_names, sys_path)
-        if module is None:
-            return NO_VALUES
-        return ValueSet([module])
-
+        return NO_VALUES if module is None else ValueSet([module])
     module_name = '.'.join(import_names)
     if parent_module_value is None:
         # Override the sys.path. It works only good that way.
@@ -414,8 +401,6 @@ def import_module(inference_state, import_names, parent_module_value, sys_path):
             sys_path=sys_path,
             is_global_search=True,
         )
-        if is_pkg is None:
-            return NO_VALUES
     else:
         paths = parent_module_value.py__path__()
         if paths is None:
@@ -428,9 +413,8 @@ def import_module(inference_state, import_names, parent_module_value, sys_path):
             full_name=module_name,
             is_global_search=False,
         )
-        if is_pkg is None:
-            return NO_VALUES
-
+    if is_pkg is None:
+        return NO_VALUES
     if isinstance(file_io_or_ns, ImplicitNSInfo):
         from jedi.inference.value.namespace import ImplicitNamespaceValue
         module = ImplicitNamespaceValue(
@@ -486,11 +470,7 @@ def _load_builtin_module(inference_state, import_names=None, sys_path=None):
     dotted_name = '.'.join(import_names)
     assert dotted_name is not None
     module = compiled.load_module(inference_state, dotted_name=dotted_name, sys_path=sys_path)
-    if module is None:
-        # The file might raise an ImportError e.g. and therefore not be
-        # importable.
-        return None
-    return module
+    return None if module is None else module
 
 
 def load_module_from_path(inference_state, file_io, import_names=None, is_package=None):
@@ -514,7 +494,7 @@ def load_module_from_path(inference_state, file_io, import_names=None, is_packag
         if path.name == '__init__.pyi':
             python_file_io = folder_io.get_file_io('__init__.py')
         else:
-            python_file_io = folder_io.get_file_io(import_names[-1] + '.py')
+            python_file_io = folder_io.get_file_io(f'{import_names[-1]}.py')
 
         try:
             v = load_module_from_path(

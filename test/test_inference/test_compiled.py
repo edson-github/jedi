@@ -60,7 +60,7 @@ def test_doc(inference_state):
 
 def test_string_literals(Script, environment):
     def typ(string):
-        d = Script("a = %s; a" % string).infer()[0]
+        d = Script(f"a = {string}; a").infer()[0]
         return d.name
 
     assert typ('""') == 'str'

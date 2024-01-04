@@ -67,14 +67,13 @@ def func(a, b):
     a = 12
     #< 4 (0,4), (3,8)
     c = a
-    if True:
-        #< 8 (-3,4), (0,8)
-        c = b
+    #< 8 (-3,4), (0,8)
+    c = b
 
 response = 5
 #< 0 (-2,0), (0,0), (1,0), (2,0), (4,0)
 response = HttpResponse(mimetype='application/pdf')
-response['Content-Disposition'] = 'attachment; filename=%s.pdf' % id
+response['Content-Disposition'] = f'attachment; filename={id}.pdf'
 response.write(pdf)
 #< (-6,0), (-4,0), (-3,0), (-2,0), (0,0)
 response
@@ -291,18 +290,18 @@ import undefined
 #< 0 (0,0), (2,12)
 x = 32
 #< 12 (-2,0), (0,12)
-[x for x in x]
+list(x)
 
 #< 0 (0,0), (2,1), (2,12)
 y = 32
 #< 12 (-2,0), (0,1), (0,12)
-[y for b in y]
+[y for _ in y]
 
 
 #< 1 (0,1), (0,7)
-[x for x in something]
+list(something)
 #< 7 (0,1), (0,7)
-[x for x in something]
+list(something)
 
 z = 3
 #< 1 (0,1), (0,10)
@@ -340,11 +339,7 @@ def global_usage1():
 def global_definition():
     #< (-4, 4), (0, 11), (2, 4), (5, 8), (8, 4)
     global my_global
-    #< 4 (-6, 4), (-2, 11), (0, 4), (3, 8), (6, 4)
-    my_global = 3
-    if WHATEVER:
-        #< 8 (-9, 4), (-5, 11), (-3, 4), (0, 8), (3, 4)
-        my_global = 4
+    my_global = 4 if WHATEVER else 3
 
 def global_usage2()
     my_global
@@ -380,10 +375,6 @@ in_both
 
 #< 8 (0, 0), (3, 4), ('import_tree.references', 1, 21), ('import_tree.references', 5, 4)
 usage_definition = 1
-if False:
-    #< 8 (-3, 0), (0, 4), ('import_tree.references', 1, 21), ('import_tree.references', 5, 4)
-    usage_definition()
-
 # -----------------
 # stdlib stuff
 # -----------------

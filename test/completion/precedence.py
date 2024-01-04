@@ -39,7 +39,7 @@ def calculate(number):
 x = 'upp' + 'e'
 
 #? str.upper
-getattr(str, x + 'r')
+getattr(str, f'{x}r')
 
 a = "a"*3
 #? str()
@@ -74,14 +74,12 @@ class X():
 
 x = [1, 'a', 1.0]
 
-i = 0
-i += 1
+i = 0 + 1
 i += 1
 #? float()
 x[i]
 
-i = 1
-i += 1
+i = 1 + 1
 i -= 3
 i += 1
 #? int()
@@ -91,44 +89,27 @@ x[i]
 # in
 # -----------------
 
-if 'X' in 'Y':
-    a = 3
-else:
-    a = ''
+a = 3 if 'X' in 'Y' else ''
 # For now don't really check for truth values. So in should return both
 # results.
 #? str() int()
 a
 
-if 'X' not in 'Y':
-    b = 3
-else:
-    b = ''
+b = 3 if 'X' not in 'Y' else ''
 # For now don't really check for truth values. So in should return both
 # results.
 #? str() int()
 b
 
-# -----------------
-# for flow assignments
-# -----------------
-
 class FooBar(object):
     fuu = 0.1
     raboof = 'fourtytwo'
 
-# targets should be working
-target = ''
-for char in ['f', 'u', 'u']:
-    target += char
+target = ''.join(['f', 'u', 'u'])
 #? float()
 getattr(FooBar, target)
 
-# github #24
-target = u''
-for char in reversed(['f', 'o', 'o', 'b', 'a', 'r']):
-    target += char
-
+target = u''.join(reversed(['f', 'o', 'o', 'b', 'a', 'r']))
 #? str()
 getattr(FooBar, target)
 
@@ -152,7 +133,7 @@ b[1]
 # -----------------
 # undefined names
 # -----------------
-a = foobarbaz + 'hello'
+a = f'{foobarbaz}hello'
 
 #? int() float()
 {'hello': 1, 'bar': 1.0}[a]

@@ -255,7 +255,7 @@ class TypeAlias(LazyValueWrapper):
         return self.name.string_name
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self._actual)
+        return f'<{self.__class__.__name__}: {self._actual}>'
 
     def _get_wrapped_value(self):
         module_name, class_name = self._actual.split('.')
@@ -268,8 +268,7 @@ class TypeAlias(LazyValueWrapper):
         classes = module.py__getattribute__(class_name)
         # There should only be one, because it's code that we control.
         assert len(classes) == 1, classes
-        cls = next(iter(classes))
-        return cls
+        return next(iter(classes))
 
     def gather_annotation_classes(self):
         return ValueSet([self._get_wrapped_value()])
@@ -307,12 +306,11 @@ class Tuple(BaseTypingInstance):
     def py__simple_getitem__(self, index):
         if self._is_homogenous():
             return self._generics_manager.get_index_and_execute(0)
-        else:
-            if isinstance(index, int):
-                return self._generics_manager.get_index_and_execute(index)
+        if isinstance(index, int):
+            return self._generics_manager.get_index_and_execute(index)
 
-            debug.dbg('The getitem type on Tuple was %s' % index)
-            return NO_VALUES
+        debug.dbg(f'The getitem type on Tuple was {index}')
+        return NO_VALUES
 
     def py__iter__(self, contextualized_node=None):
         if self._is_homogenous():
@@ -354,29 +352,28 @@ class Tuple(BaseTypingInstance):
                 value_set.merge_types_of_iterate(),
             )
 
-        else:
-            # The parameter annotation has only explicit type parameters
-            # (e.g: `Tuple[T]`, `Tuple[T, U]`, `Tuple[T, U, V]`, etc.) so we
-            # treat the incoming values as needing to match the annotation
-            # exactly, just as we would for non-tuple annotations.
+        # The parameter annotation has only explicit type parameters
+        # (e.g: `Tuple[T]`, `Tuple[T, U]`, `Tuple[T, U, V]`, etc.) so we
+        # treat the incoming values as needing to match the annotation
+        # exactly, just as we would for non-tuple annotations.
 
-            type_var_dict = {}
-            for element in value_set:
-                try:
-                    method = element.get_annotated_class_object
-                except AttributeError:
-                    # This might still happen, because the tuple name matching
-                    # above is not 100% correct, so just catch the remaining
-                    # cases here.
-                    continue
+        type_var_dict = {}
+        for element in value_set:
+            try:
+                method = element.get_annotated_class_object
+            except AttributeError:
+                # This might still happen, because the tuple name matching
+                # above is not 100% correct, so just catch the remaining
+                # cases here.
+                continue
 
-                py_class = method()
-                merge_type_var_dicts(
-                    type_var_dict,
-                    merge_pairwise_generics(self._class_value, py_class),
-                )
+            py_class = method()
+            merge_type_var_dicts(
+                type_var_dict,
+                merge_pairwise_generics(self._class_value, py_class),
+            )
 
-            return type_var_dict
+        return type_var_dict
 
 
 class Generic(BaseTypingInstance):
@@ -435,7 +432,7 @@ class NewType(Value):
         return CompiledValueName(self, 'NewType')
 
     def __repr__(self) -> str:
-        return '<NewType: %s>%s' % (self.tree_node, self._type_value_set)
+        return f'<NewType: {self.tree_node}>{self._type_value_set}'
 
 
 class CastFunction(ValueWrapper):

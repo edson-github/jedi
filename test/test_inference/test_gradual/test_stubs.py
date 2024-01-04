@@ -79,9 +79,7 @@ def test_infer_and_goto(Script, code, full_name, has_stub, has_python, way,
         assert defs
 
     for d in defs:
-        if prefer_stubs and has_stub:
-            assert d.is_stub()
-        elif only_stubs:
+        if prefer_stubs and has_stub or only_stubs:
             assert d.is_stub()
         else:
             assert has_python == (not d.is_stub())

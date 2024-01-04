@@ -120,8 +120,7 @@ class HelperValueMixin:
         return self.py__iter__(contextualized_node)
 
     def is_sub_class_of(self, class_value):
-        with debug.increase_indent_cm('subclass matching of %s <=> %s' % (self, class_value),
-                                      color='BLUE'):
+        with debug.increase_indent_cm(f'subclass matching of {self} <=> {class_value}', color='BLUE'):
             for cls in self.py__mro__():
                 if cls.is_same_class(class_value):
                     debug.dbg('matched subclass True', color='BLUE')
@@ -161,7 +160,7 @@ class Value(HelperValueMixin):
             contextualized_node.context,
             'type-error-not-subscriptable',
             contextualized_node.node,
-            message="TypeError: '%s' object is not subscriptable" % self
+            message=f"TypeError: '{self}' object is not subscriptable",
         )
         return NO_VALUES
 
@@ -175,7 +174,8 @@ class Value(HelperValueMixin):
                 contextualized_node.context,
                 'type-error-not-iterable',
                 contextualized_node.node,
-                message="TypeError: '%s' object is not iterable" % self)
+                message=f"TypeError: '{self}' object is not iterable",
+            )
         return iter([])
 
     def py__next__(self, contextualized_node=None):
@@ -228,7 +228,7 @@ class Value(HelperValueMixin):
 
     def get_safe_value(self, default=sentinel):
         if default is sentinel:
-            raise ValueError("There exists no safe value for value %s" % self)
+            raise ValueError(f"There exists no safe value for value {self}")
         return default
 
     def execute_operation(self, other, operator):
@@ -322,9 +322,8 @@ class _ValueWrapperBase(HelperValueMixin):
         wrapped_name = self._wrapped_value.name
         if wrapped_name.tree_name is not None:
             return ValueName(self, wrapped_name.tree_name)
-        else:
-            from jedi.inference.compiled import CompiledValueName
-            return CompiledValueName(self, wrapped_name.string_name)
+        from jedi.inference.compiled import CompiledValueName
+        return CompiledValueName(self, wrapped_name.string_name)
 
     @classmethod
     @inference_state_as_method_param_cache()
@@ -344,7 +343,7 @@ class LazyValueWrapper(_ValueWrapperBase):
             return self._get_wrapped_value()
 
     def __repr__(self):
-        return '<%s>' % (self.__class__.__name__)
+        return f'<{self.__class__.__name__}>'
 
     def _get_wrapped_value(self):
         raise NotImplementedError
@@ -355,7 +354,7 @@ class ValueWrapper(_ValueWrapperBase):
         self._wrapped_value = wrapped_value
 
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, self._wrapped_value)
+        return f'{self.__class__.__name__}({self._wrapped_value})'
 
 
 class TreeValue(Value):
@@ -364,7 +363,7 @@ class TreeValue(Value):
         self.tree_node = tree_node
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self.tree_node)
+        return f'<{self.__class__.__name__}: {self.tree_node}>'
 
 
 class ContextualizedNode:
@@ -379,7 +378,7 @@ class ContextualizedNode:
         return self.context.infer_node(self.node)
 
     def __repr__(self):
-        return '<%s: %s in %s>' % (self.__class__.__name__, self.node, self.context)
+        return f'<{self.__class__.__name__}: {self.node} in {self.context}>'
 
 
 def _getitem(value, index_values, contextualized_node):
@@ -530,9 +529,9 @@ class ValueSet:
         elif len(type_hints) == 1:
             s = type_hints[0]
         else:
-            s = 'Union[%s]' % ', '.join(type_hints)
+            s = f"Union[{', '.join(type_hints)}]"
         if optional:
-            s = 'Optional[%s]' % s
+            s = f'Optional[{s}]'
         return s
 
     def infer_type_vars(self, value_set):

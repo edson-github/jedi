@@ -43,10 +43,7 @@ class FunctionAndClassBase(TreeValue):
     def get_qualified_names(self):
         if self.parent_context.is_class():
             n = self.parent_context.get_qualified_names()
-            if n is None:
-                # This means that the parent class lives within a function.
-                return None
-            return n + (self.py__name__(),)
+            return None if n is None else n + (self.py__name__(),)
         elif self.parent_context.is_module():
             return (self.py__name__(),)
         else:
@@ -91,9 +88,9 @@ class FunctionMixin:
                 s = n.string_name
                 annotation = n.infer().get_type_hint()
                 if annotation is not None:
-                    s += ': ' + annotation
+                    s += f': {annotation}'
                 if n.default_node is not None:
-                    s += '=' + n.default_node.get_code(include_prefix=False)
+                    s += f'={n.default_node.get_code(include_prefix=False)}'
                 return s
 
             function_execution = self.as_context()
@@ -109,7 +106,7 @@ class FunctionMixin:
             return_hint = return_annotation.get_code(include_prefix=False)
             body = self.py__name__() + self.tree_node.children[2].get_code(include_prefix=False)
 
-        return body + ' -> ' + return_hint
+        return f'{body} -> {return_hint}'
 
     def py__call__(self, arguments):
         function_execution = self.as_context(arguments)
@@ -190,9 +187,7 @@ class MethodValue(FunctionValue):
         # Need to implement this, because the parent value of a method
         # value is not the class value but the module.
         names = self.class_context.get_qualified_names()
-        if names is None:
-            return None
-        return names + (self.py__name__(),)
+        return None if names is None else names + (self.py__name__(),)
 
     @property
     def name(self):
@@ -276,7 +271,7 @@ class BaseFunctionExecutionContext(ValueContext, TreeContextMixin):
             if parent.type == 'suite':
                 parent = parent.parent
             if for_stmt.type == 'for_stmt' and parent == self.tree_node \
-                    and parser_utils.for_stmt_defines_one_name(for_stmt):  # Simplicity for now.
+                        and parser_utils.for_stmt_defines_one_name(for_stmt):  # Simplicity for now.
                 if for_stmt == last_for_stmt:
                     yields_order[-1][1].append(yield_)
                 else:
@@ -284,8 +279,7 @@ class BaseFunctionExecutionContext(ValueContext, TreeContextMixin):
             elif for_stmt == self.tree_node:
                 yields_order.append((None, [yield_]))
             else:
-                types = self.get_return_values(check_yields=True)
-                if types:
+                if types := self.get_return_values(check_yields=True):
                     yield LazyKnownValues(types, min=0, max=float('inf'))
                 return
             last_for_stmt = for_stmt
@@ -323,32 +317,32 @@ class BaseFunctionExecutionContext(ValueContext, TreeContextMixin):
         is_coroutine = self.tree_node.parent.type in ('async_stmt', 'async_funcdef')
         from jedi.inference.gradual.base import GenericClass
 
-        if is_coroutine:
-            if self.is_generator():
-                async_generator_classes = inference_state.typing_module \
+        if not is_coroutine:
+            # If there are annotations, prefer them over anything else.
+            return (
+                ValueSet([iterable.Generator(inference_state, self)])
+                if self.is_generator() and not self.infer_annotations()
+                else self.get_return_values()
+            )
+        if self.is_generator():
+            async_generator_classes = inference_state.typing_module \
                     .py__getattribute__('AsyncGenerator')
 
-                yield_values = self.merge_yield_values(is_async=True)
-                # The contravariant doesn't seem to be defined.
-                generics = (yield_values.py__class__(), NO_VALUES)
-                return ValueSet(
-                    GenericClass(c, TupleGenericManager(generics))
-                    for c in async_generator_classes
-                ).execute_annotation()
-            else:
-                async_classes = inference_state.typing_module.py__getattribute__('Coroutine')
-                return_values = self.get_return_values()
-                # Only the first generic is relevant.
-                generics = (return_values.py__class__(), NO_VALUES, NO_VALUES)
-                return ValueSet(
-                    GenericClass(c, TupleGenericManager(generics)) for c in async_classes
-                ).execute_annotation()
+            yield_values = self.merge_yield_values(is_async=True)
+            # The contravariant doesn't seem to be defined.
+            generics = (yield_values.py__class__(), NO_VALUES)
+            return ValueSet(
+                GenericClass(c, TupleGenericManager(generics))
+                for c in async_generator_classes
+            ).execute_annotation()
         else:
-            # If there are annotations, prefer them over anything else.
-            if self.is_generator() and not self.infer_annotations():
-                return ValueSet([iterable.Generator(inference_state, self)])
-            else:
-                return self.get_return_values()
+            async_classes = inference_state.typing_module.py__getattribute__('Coroutine')
+            return_values = self.get_return_values()
+            # Only the first generic is relevant.
+            generics = (return_values.py__class__(), NO_VALUES, NO_VALUES)
+            return ValueSet(
+                GenericClass(c, TupleGenericManager(generics)) for c in async_classes
+            ).execute_annotation()
 
 
 class FunctionExecutionContext(BaseFunctionExecutionContext):
@@ -415,7 +409,7 @@ class OverloadedFunctionValue(FunctionMixin, ValueWrapper):
         return self._overloaded_functions
 
     def get_type_hint(self, add_class_info=True):
-        return 'Union[%s]' % ', '.join(f.get_type_hint() for f in self._overloaded_functions)
+        return f"Union[{', '.join(f.get_type_hint() for f in self._overloaded_functions)}]"
 
 
 def _find_overload_functions(context, tree_node):

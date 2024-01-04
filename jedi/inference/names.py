@@ -51,9 +51,7 @@ class AbstractNameDefinition:
             return qualified_names
 
         module_names = self.get_root_context().string_names
-        if module_names is None:
-            return None
-        return module_names + qualified_names
+        return None if module_names is None else module_names + qualified_names
 
     def _get_qualified_names(self):
         # By default, a name has no qualified names.
@@ -67,9 +65,8 @@ class AbstractNameDefinition:
 
     def __repr__(self):
         if self.start_pos is None:
-            return '<%s: string_name=%s>' % (self.__class__.__name__, self.string_name)
-        return '<%s: string_name=%s start_pos=%s>' % (self.__class__.__name__,
-                                                      self.string_name, self.start_pos)
+            return f'<{self.__class__.__name__}: string_name={self.string_name}>'
+        return f'<{self.__class__.__name__}: string_name={self.string_name} start_pos={self.start_pos}>'
 
     def is_import(self):
         return False
@@ -154,8 +151,7 @@ class AbstractTreeName(AbstractNameDefinition):
                     return [self]
             elif type_ in ('import_from', 'import_name'):
                 from jedi.inference.imports import goto_import
-                module_names = goto_import(context, name)
-                return module_names
+                return goto_import(context, name)
             else:
                 return [self]
         else:
@@ -186,9 +182,11 @@ class AbstractTreeName(AbstractNameDefinition):
                 param_names = []
                 for value in value_set:
                     for signature in value.get_signatures():
-                        for param_name in signature.get_param_names():
-                            if param_name.string_name == name.value:
-                                param_names.append(param_name)
+                        param_names.extend(
+                            param_name
+                            for param_name in signature.get_param_names()
+                            if param_name.string_name == name.value
+                        )
                 return param_names
         elif node_type == 'dotted_name':  # Is a decorator.
             index = par.children.index(name)
@@ -377,9 +375,7 @@ class _ParamMixin:
         kind = self.get_kind()
         if kind == Parameter.VAR_POSITIONAL:  # *args
             return '*'
-        if kind == Parameter.VAR_KEYWORD:  # **kwargs
-            return '**'
-        return ''
+        return '**' if kind == Parameter.VAR_KEYWORD else ''
 
     def get_qualified_names(self, include_module_names=False):
         return None
@@ -410,9 +406,7 @@ class ParamNameInterface(_ParamMixin):
         kind = self.get_kind()
         if kind == Parameter.VAR_POSITIONAL:
             return 1
-        if kind == Parameter.VAR_KEYWORD:
-            return 2
-        return 0
+        return 2 if kind == Parameter.VAR_KEYWORD else 0
 
     def infer_default(self):
         return NO_VALUES
@@ -427,9 +421,9 @@ class BaseTreeParamName(ParamNameInterface, AbstractTreeName):
         annotation = self.annotation_node
         default = self.default_node
         if annotation is not None:
-            output += ': ' + annotation.get_code(include_prefix=False)
+            output += f': {annotation.get_code(include_prefix=False)}'
         if default is not None:
-            output += '=' + default.get_code(include_prefix=False)
+            output += f'={default.get_code(include_prefix=False)}'
         return output
 
     def get_public_name(self):
@@ -468,9 +462,7 @@ class _ActualTreeParamName(BaseTreeParamName):
 
     def infer_default(self):
         node = self.default_node
-        if node is None:
-            return NO_VALUES
-        return self.parent_context.infer_node(node)
+        return NO_VALUES if node is None else self.parent_context.infer_node(node)
 
     @property
     def default_node(self):
@@ -505,12 +497,10 @@ class _ActualTreeParamName(BaseTreeParamName):
         return Parameter.POSITIONAL_OR_KEYWORD
 
     def infer(self):
-        values = self.infer_annotation()
-        if values:
+        if values := self.infer_annotation():
             return values
 
-        doc_params = docstrings.infer_param(self.function_value, self._get_param_node())
-        return doc_params
+        return docstrings.infer_param(self.function_value, self._get_param_node())
 
 
 class AnonymousParamName(_ActualTreeParamName):
@@ -520,13 +510,13 @@ class AnonymousParamName(_ActualTreeParamName):
 
     @plugin_manager.decorate(name='infer_anonymous_param')
     def infer(self):
-        values = super().infer()
-        if values:
+        if values := super().infer():
             return values
         from jedi.inference.dynamic_params import dynamic_param_lookup
         param = self._get_param_node()
-        values = dynamic_param_lookup(self.function_value, param.position_index)
-        if values:
+        if values := dynamic_param_lookup(
+            self.function_value, param.position_index
+        ):
             return values
 
         if param.star_count == 1:
@@ -548,8 +538,7 @@ class ParamName(_ActualTreeParamName):
         self.arguments = arguments
 
     def infer(self):
-        values = super().infer()
-        if values:
+        if values := super().infer():
             return values
 
         return self.get_executed_param_name().infer()
@@ -568,7 +557,7 @@ class ParamNameWrapper(_ParamMixin):
         return getattr(self._wrapped_param_name, name)
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self._wrapped_param_name)
+        return f'<{self.__class__.__name__}: {self._wrapped_param_name}>'
 
 
 class ImportName(AbstractNameDefinition):
@@ -594,11 +583,7 @@ class ImportName(AbstractNameDefinition):
     def parent_context(self):
         m = self._from_module_context
         import_values = self.infer()
-        if not import_values:
-            return m
-        # It's almost always possible to find the import or to not find it. The
-        # importing returns only one value, pretty much always.
-        return next(iter(import_values)).as_context()
+        return m if not import_values else next(iter(import_values)).as_context()
 
     @memoize_method
     def infer(self):
@@ -629,7 +614,7 @@ class NameWrapper:
         return getattr(self._wrapped_name, name)
 
     def __repr__(self):
-        return '%s(%s)' % (self.__class__.__name__, self._wrapped_name)
+        return f'{self.__class__.__name__}({self._wrapped_name})'
 
 
 class StubNameMixin:
@@ -643,12 +628,7 @@ class StubNameMixin:
             names = [v.name for v in self.infer()]
 
         names = convert_names(names, prefer_stub_to_compiled=False)
-        if self in names:
-            return super().py__doc__()
-        else:
-            # We have signatures ourselves in stubs, so don't use signatures
-            # from the implementation.
-            return _merge_name_docs(names)
+        return super().py__doc__() if self in names else _merge_name_docs(names)
 
 
 # From here on down we make looking up the sys.version_info fast.

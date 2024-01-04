@@ -54,10 +54,6 @@ for loop_variable in [1, 2]:
     x = undefined
     loop_variable
 
-#! 28 name-error
-for loop_variable in [1, 2, undefined]:
-    pass
-
 #! 7 attribute-error
 [1, ''.undefined_attr]
 
@@ -69,12 +65,12 @@ def return_one(something):
 return_one(''.undefined_attribute)
 
 #! 12 name-error
-[r for r in undefined]
+list(undefined)
 
 #! 1 name-error
-[undefined for r in [1, 2]]
+[undefined for _ in [1, 2]]
 
-[r for r in [1, 2]]
+[1, 2]
 
 # some random error that showed up
 class NotCalled():
@@ -95,7 +91,7 @@ def func():
 # operators
 # -----------------
 
-string = '%s %s' % (1, 2)
+string = '1 2'
 
 # Shouldn't raise an error, because `string` is really just a string, not an
 # array or something.

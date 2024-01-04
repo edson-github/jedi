@@ -42,8 +42,7 @@ class StubModuleValue(ModuleValue):
     def get_filters(self, origin_scope=None):
         filters = super().get_filters(origin_scope)
         next(filters, None)  # Ignore the first filter and replace it with our own
-        stub_filters = self._get_stub_filters(origin_scope=origin_scope)
-        yield from stub_filters
+        yield from self._get_stub_filters(origin_scope=origin_scope)
         yield from filters
 
     def _as_context(self):
@@ -93,9 +92,7 @@ class StubFilter(ParserTreeFilter):
                 return False
         n = name.value
         # TODO rewrite direct return
-        if n.startswith('_') and not (n.startswith('__') and n.endswith('__')):
-            return False
-        return True
+        return bool(not n.startswith('_') or n.startswith('__') and n.endswith('__'))
 
 
 class VersionInfo(ValueWrapper):

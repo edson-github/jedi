@@ -91,7 +91,7 @@ def test_complete_expanduser(Script):
     possibilities = os.scandir(expanduser('~'))
     non_dots = [p for p in possibilities if not p.name.startswith('.') and len(p.name) > 1]
     item = non_dots[0]
-    line = "'~%s%s'" % (os.sep, item.name)
+    line = f"'~{os.sep}{item.name}'"
     s = Script(line)
     expected_name = item.name
     if item.is_dir():
@@ -194,98 +194,8 @@ se = s * 2 if s == '\\' else s
 current_dirname = os.path.basename(dirname(dirname(dirname(__file__))))
 
 
-@pytest.mark.parametrize(
-    'file, code, column, expected', [
-        # General tests / relative paths
-        (None, '"comp', None, []),  # No files like comp
-        (None, '"test', None, [s]),
-        (None, '"test', 4, ['t' + s]),
-        ('example.py', '"test%scomp' % s, None, ['letion' + s]),
-        ('example.py', 'r"comp"', None, []),
-        ('example.py', 'r"tes"', None, []),
-        ('example.py', '1 + r"tes"', None, []),
-        ('example.py', 'r"tes"', 5, ['t' + s]),
-        ('example.py', 'r" tes"', 6, []),
-        ('test%sexample.py' % se, 'r"tes"', 5, ['t' + s]),
-        ('test%sexample.py' % se, 'r"test%scomp"' % s, 5, ['t' + s]),
-        ('test%sexample.py' % se, 'r"test%scomp"' % s, 11, ['letion' + s]),
-        ('test%sexample.py' % se, '"%s"' % join('test', 'completion', 'basi'), 21, ['c.py']),
-        ('example.py', 'rb"' + join('..', current_dirname, 'tes'), None, ['t' + s]),
-
-        # Absolute paths
-        (None, f'"{root_dir.joinpath("test", "test_ca")}', None, ['che.py"']),
-        (None, f'"{root_dir.joinpath("test", "test_ca")}"', len(str(root_dir)) + 14, ['che.py']),
-
-        # Longer quotes
-        ('example.py', 'r"""test', None, [s]),
-        ('example.py', 'r"""\ntest', None, []),
-        ('example.py', 'u"""tes\n', (1, 7), ['t' + s]),
-        ('example.py', '"""test%stest_cache.p"""' % s, 20, ['y']),
-        ('example.py', '"""test%stest_cache.p"""' % s, 19, ['py"""']),
-
-        # Adding
-        ('example.py', '"test" + "%stest_cac' % se, None, ['he.py"']),
-        ('example.py', '"test" + "%s" + "test_cac' % se, None, ['he.py"']),
-        ('example.py', 'x = 1 + "test', None, []),
-        ('example.py', 'x = f("te" + "st)', 16, [s]),
-        ('example.py', 'x = f("te" + "st', 16, [s]),
-        ('example.py', 'x = f("te" + "st"', 16, [s]),
-        ('example.py', 'x = f("te" + "st")', 16, [s]),
-        ('example.py', 'x = f("t" + "est")', 16, [s]),
-        ('example.py', 'x = f(b"t" + "est")', 17, []),
-        ('example.py', '"test" + "', None, [s]),
-
-        # __file__
-        (f1, os_path + 'dirname(__file__) + "%stest' % s, None, [s]),
-        (f2, os_path + 'dirname(__file__) + "%stest_ca' % se, None, ['che.py"']),
-        (f2, os_path + 'dirname(abspath(__file__)) + sep + "test_ca', None, ['che.py"']),
-        (f2, os_path + 'join(dirname(__file__), "completion") + sep + "basi', None, ['c.py"']),
-        (f2, os_path + 'join("test", "completion") + sep + "basi', None, ['c.py"']),
-
-        # inside join
-        (f2, os_path + 'join(dirname(__file__), "completion", "basi', None, ['c.py"']),
-        (f2, os_path + 'join(dirname(__file__), "completion", "basi)', 43, ['c.py"']),
-        (f2, os_path + 'join(dirname(__file__), "completion", "basi")', 43, ['c.py']),
-        (f2, os_path + 'join(dirname(__file__), "completion", "basi)', 35, ['']),
-        (f2, os_path + 'join(dirname(__file__), "completion", "basi)', 33, ['on"']),
-        (f2, os_path + 'join(dirname(__file__), "completion", "basi")', 33, ['on"']),
-
-        # join with one argument. join will not get inferred and the result is
-        # that directories and in a slash. This is unfortunate, but doesn't
-        # really matter.
-        (f2, os_path + 'join("tes', 9, ['t"']),
-        (f2, os_path + 'join(\'tes)', 9, ["t'"]),
-        (f2, os_path + 'join(r"tes"', 10, ['t']),
-        (f2, os_path + 'join("""tes""")', 11, ['t']),
-
-        # Almost like join but not really
-        (f2, os_path + 'join["tes', 9, ['t' + s]),
-        (f2, os_path + 'join["tes"', 9, ['t' + s]),
-        (f2, os_path + 'join["tes"]', 9, ['t' + s]),
-        (f2, os_path + 'join[dirname(__file__), "completi', 33, []),
-        (f2, os_path + 'join[dirname(__file__), "completi"', 33, []),
-        (f2, os_path + 'join[dirname(__file__), "completi"]', 33, []),
-
-        # With full paths
-        (f2, 'import os\nos.path.join(os.path.dirname(__file__), "completi', 49, ['on"']),
-        (f2, 'import os\nos.path.join(os.path.dirname(__file__), "completi"', 49, ['on']),
-        (f2, 'import os\nos.path.join(os.path.dirname(__file__), "completi")', 49, ['on']),
-
-        # With alias
-        (f2, 'import os.path as p as p\np.join(p.dirname(__file__), "completi', None, ['on"']),
-        (f2, 'from os.path import dirname, join as j\nj(dirname(__file__), "completi',
-         None, ['on"']),
-
-        # Trying to break it
-        (f2, os_path + 'join(["tes', 10, ['t' + s]),
-        (f2, os_path + 'join(["tes"]', 10, ['t' + s]),
-        (f2, os_path + 'join(["tes"])', 10, ['t' + s]),
-        (f2, os_path + 'join("test", "test_cac" + x,', 22, ['he.py']),
-
-        # GH #1528
-        (f2, "'a' 'b'", 4, Ellipsis),
-    ]
-)
+@pytest.mark.parametrize('file, code, column, expected', [(None, '"comp', None, []), (None, '"test', None, [s]), (None, '"test', 4, [f't{s}']), ('example.py', f'"test{s}comp', None, [f'letion{s}']), ('example.py', 'r"comp"', None, []), ('example.py', 'r"tes"', None, []), ('example.py', '1 + r"tes"', None, []), ('example.py', 'r"tes"', 5, [f't{s}']), ('example.py', 'r" tes"', 6, []), (f'test{se}example.py', 'r"tes"', 5, [f't{s}']), (f'test{se}example.py', f'r"test{s}comp"', 5, [f't{s}']), (f'test{se}example.py', f'r"test{s}comp"', 11, [f'letion{s}']), (f'test{se}example.py', f""""{join('test', 'completion', 'basi')}\"""", 21, ['c.py']), ('example.py', 'rb"' + join('..', current_dirname, 'tes'), None, [f't{s}']), (None, f'"{root_dir.joinpath("test", "test_ca")}', None, ['che.py"']), (None, f'"{root_dir.joinpath("test", "test_ca")}"', len(str(root_dir)) + 14, ['che.py']), ('example.py', 'r"""test', None, [s]), ('example.py', 'r"""\ntest', None, []), ('example.py', 'u"""tes\n', (1, 7), [f't{s}']), ('example.py', f'"""test{s}test_cache.p"""', 20, ['y']), ('example.py', f'"""test{s}test_cache.p"""', 19, ['py"""']), ('example.py', f'"test" + "{se}test_cac', None, ['he.py"']), ('example.py', f'"test" + "{se}" + "test_cac', None, ['he.py"']), ('example.py', 'x = 1 + "test', None, []), ('example.py', 'x = f("te" + "st)', 16, [s]), ('example.py', 'x = f("te" + "st', 16, [s]), ('example.py', 'x = f("te" + "st"', 16, [s]), ('example.py', 'x = f("te" + "st")', 16, [s]), ('example.py', 'x = f("t" + "est")', 16, [s]), ('example.py', 'x = f(b"t" + "est")', 17, []), ('example.py', '"test" + "', None, [s]), (f1, f'{os_path}dirname(__file__) + "{s}test', None, [s]), (f2, f'{os_path}dirname(__file__) + "{se}test_ca', None, ['che.py"']), (f2, f'{os_path}dirname(abspath(__file__)) + sep + "test_ca', None, ['che.py"']), (f2, f'{os_path}join(dirname(__file__), "completion") + sep + "basi', None, ['c.py"']), (f2, f'{os_path}join("test", "completion") + sep + "basi', None, ['c.py"']), (f2, f'{os_path}join(dirname(__file__), "completion", "basi', None, ['c.py"']), (f2, f'{os_path}join(dirname(__file__), "completion", "basi)', 43, ['c.py"']), (f2, f'{os_path}join(dirname(__file__), "completion", "basi")', 43, ['c.py']), (f2, f'{os_path}join(dirname(__file__), "completion", "basi)', 35, ['']), (f2, f'{os_path}join(dirname(__file__), "completion", "basi)', 33, ['on"']), (f2, f'{os_path}join(dirname(__file__), "completion", "basi")', 33, ['on"']), (f2, f'{os_path}join("tes', 9, ['t"']), (f2, os_path + 'join(\'tes)', 9, ["t'"]), (f2, f'{os_path}join(r"tes"', 10, ['t']), (f2, f'{os_path}join("""tes""")', 11, ['t']), (f2, f'{os_path}join["tes', 9, [f't{s}']), (f2, f'{os_path}join["tes"', 9, [f't{s}']), (f2, f'{os_path}join["tes"]', 9, [f't{s}']), (f2, f'{os_path}join[dirname(__file__), "completi', 33, []), (f2, f'{os_path}join[dirname(__file__), "completi"', 33, []), (f2, f'{os_path}join[dirname(__file__), "completi"]', 33, []), (f2, 'import os\nos.path.join(os.path.dirname(__file__), "completi', 49, ['on"']), (f2, 'import os\nos.path.join(os.path.dirname(__file__), "completi"', 49, ['on']), (f2, 'import os\nos.path.join(os.path.dirname(__file__), "completi")', 49, ['on']), (f2, 'import os.path as p as p\np.join(p.dirname(__file__), "completi', None, ['on"']), (f2, 'from os.path import dirname, join as j\nj(dirname(__file__), "completi',
+         None, ['on"']), (f2, f'{os_path}join(["tes', 10, [f't{s}']), (f2, f'{os_path}join(["tes"]', 10, [f't{s}']), (f2, f'{os_path}join(["tes"])', 10, [f't{s}']), (f2, f'{os_path}join("test", "test_cac" + x,', 22, ['he.py']), (f2, "'a' 'b'", 4, Ellipsis)])
 def test_file_path_completions(Script, file, code, column, expected):
     line = None
     if isinstance(column, tuple):
@@ -412,8 +322,8 @@ def module_injector():
     def module_injector(inference_state, names, code):
         assert isinstance(names, tuple)
         file_io = KnownContentFileIO(
-            Path('foo/bar/module-injector-%s.py' % next(counter)).absolute(),
-            code
+            Path(f'foo/bar/module-injector-{next(counter)}.py').absolute(),
+            code,
         )
         v = _load_python_module(inference_state, file_io, names)
         inference_state.module_cache.add(names, ValueSet([v]))

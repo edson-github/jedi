@@ -23,7 +23,7 @@ def test_implicit_namespace_package(Script):
     for source, solution in tests.items():
         ass = script_with_path(source).goto()
         assert len(ass) == 1
-        assert ass[0].description == "foo = '%s'" % solution
+        assert ass[0].description == f"foo = '{solution}'"
 
     # completion
     completions = script_with_path('from pkg import ').complete()
@@ -37,10 +37,10 @@ def test_implicit_namespace_package(Script):
         'from pkg import ns1_file as x': 'ns1_file!'
     }
     for source, solution in tests.items():
-        for c in script_with_path(source + '; x.').complete():
+        for c in script_with_path(f'{source}; x.').complete():
             if c.name == 'foo':
                 completion = c
-        solution = "foo = '%s'" % solution
+        solution = f"foo = '{solution}'"
         assert completion.description == solution
 
     c, = script_with_path('import pkg').complete()
@@ -79,7 +79,7 @@ def test_namespace_package_in_multiple_directories_autocompletion(Script):
     project = Project('.', sys_path=sys_path)
     script = Script(code, project=project)
     compl = script.complete()
-    assert set(c.name for c in compl) == set(['ns1_file', 'ns2_file'])
+    assert {c.name for c in compl} == {'ns1_file', 'ns2_file'}
 
 
 def test_namespace_package_in_multiple_directories_goto_definition(Script):
@@ -100,4 +100,4 @@ def test_namespace_name_autocompletion_full_name(Script):
     project = Project('.', sys_path=sys_path)
     script = Script(code, project=project)
     compl = script.complete()
-    assert set(c.full_name for c in compl) == set(['pkg'])
+    assert {c.full_name for c in compl} == {'pkg'}

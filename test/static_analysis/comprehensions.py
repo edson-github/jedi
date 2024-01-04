@@ -1,12 +1,12 @@
 [a + 1 for a in [1, 2]]
 
 #! 3 type-error-operation
-[a + '' for a in [1, 2]]
+[f'{a}' for a in [1, 2]]
 #! 3 type-error-operation
-(a + '' for a in [1, 2])
+(f'{a}' for a in [1, 2])
 
 #! 12 type-error-not-iterable
-[a for a in 1]
+list(1)
 
 tuple(str(a) for a in [1])
 
@@ -28,7 +28,7 @@ abcdef = []
 [1 for a in NOT_DEFINFED for b in [1] if 1]
 
 #! 19 name-error
-(1 for a in [1] if NOT_DEFINED)
+(1 for _ in [1] if NOT_DEFINED)
 
 # ----------
 # unbalanced sides.

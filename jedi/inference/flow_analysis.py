@@ -28,7 +28,7 @@ class Status:
             return REACHABLE if self._value and other._value else UNREACHABLE
 
     def __repr__(self):
-        return '<%s: %s>' % (type(self).__name__, self._name)
+        return f'<{type(self).__name__}: {self._name}>'
 
 
 REACHABLE = Status(True, 'reachable')
@@ -105,7 +105,7 @@ def _break_check(context, value_scope, flow_scope, node):
     if reachable in (UNREACHABLE, UNSURE):
         return reachable
 
-    if value_scope != flow_scope and value_scope != flow_scope.parent:
+    if value_scope not in [flow_scope, flow_scope.parent]:
         flow_scope = get_parent_scope(flow_scope, include_flows=True)
         return reachable & _break_check(context, value_scope, flow_scope, node)
     else:
@@ -118,8 +118,5 @@ def _check_if(context, node):
             return UNSURE
 
         types = context.infer_node(node)
-        values = set(x.py__bool__() for x in types)
-        if len(values) == 1:
-            return Status.lookup_table[values.pop()]
-        else:
-            return UNSURE
+        values = {x.py__bool__() for x in types}
+        return Status.lookup_table[values.pop()] if len(values) == 1 else UNSURE

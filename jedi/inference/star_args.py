@@ -130,14 +130,13 @@ def process_params(param_names, star_count=3):  # default means both * and **
         elif kind == Parameter.POSITIONAL_ONLY:
             if star_count & 1:
                 yield p
+        elif star_count == 1:
+            yield ParamNameFixedKind(p, Parameter.POSITIONAL_ONLY)
+        elif star_count == 2:
+            kw_only_names.append(ParamNameFixedKind(p, Parameter.KEYWORD_ONLY))
         else:
-            if star_count == 1:
-                yield ParamNameFixedKind(p, Parameter.POSITIONAL_ONLY)
-            elif star_count == 2:
-                kw_only_names.append(ParamNameFixedKind(p, Parameter.KEYWORD_ONLY))
-            else:
-                used_names.add(p.string_name)
-                yield p
+            used_names.add(p.string_name)
+            yield p
 
     # First process *args
     longest_param_names = ()

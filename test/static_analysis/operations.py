@@ -5,7 +5,7 @@
 #! 2 type-error-operation
 1 - '1'
 
--1 - - 1
+0
 # TODO uncomment
 #-1 - int()
 #int() - float()
